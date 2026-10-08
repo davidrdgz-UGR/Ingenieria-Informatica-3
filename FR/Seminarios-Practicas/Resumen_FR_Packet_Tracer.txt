@@ -1,0 +1,150 @@
+FUNDAMENTOS DE REDES - SEMINARIO 1
+RESUMEN RAPIDO PARA REPASAR (PACKET TRACER)
+============================================================
+
+1. OBJETIVO
+-----------
+Montar 4 redes, asignar IP a los equipos y configurar 3 routers
+para que todos puedan comunicarse. Comprobar con ping y PDU.
+
+2. TOPOLOGIA
+------------
+- LAN1:       PC_1 + PC_2 -- Switch_LAN1 -- RX_1
+- LAN2:       PC_3 + PC_4 -- Switch_LAN2 -- RX_2
+- INTRANET:   RX_1 + RX_2 + RX_3 -- Switch_Intranet
+- EXTRANET:   RX_3 -- Switch_Extranet -- ServidorWEB
+
+Dispositivos: 3 routers 4331, 4 switches 2960, 4 PCs, 1 servidor.
+Cableado: Copper Straight-Through (cable directo).
+Los puertos FastEthernet de un switch tambien sirven para conectar routers.
+
+3. DIRECCIONES IP (TODAS CON MASCARA 255.255.255.0 = /24)
+--------------------------------------------------------
+Equipo        IP              Gateway
+PC_1          33.1.1.2        33.1.1.1
+PC_2          33.1.1.3        33.1.1.1
+PC_3          33.1.2.2        33.1.2.1
+PC_4          33.1.2.3        33.1.2.1
+ServidorWEB   10.0.0.10       10.0.0.1
+
+Redes:
+LAN1: 33.1.1.0/24 | LAN2: 33.1.2.0/24
+Intranet: 172.16.1.0/24 | Extranet: 10.0.0.0/24
+
+Para poner una IP a un PC: Desktop > IP Configuration > Static.
+Gateway = IP del router en la misma red del PC.
+
+4. INTERFACES DE LOS ROUTERS
+----------------------------
+RX_1: Gig0/0/0 = 33.1.1.1    (LAN1)
+      Gig0/0/1 = 172.16.1.1  (Intranet)
+RX_2: Gig0/0/0 = 33.1.2.1    (LAN2)
+      Gig0/0/1 = 172.16.1.2  (Intranet)
+RX_3: Gig0/0/0 = 172.16.1.3  (Intranet)
+      Gig0/0/1 = 10.0.0.1    (Extranet)
+
+Comandos de ejemplo (RX_1):
+  enable
+  configure terminal
+  interface gigabitEthernet 0/0/0
+  ip address 33.1.1.1 255.255.255.0
+  no shutdown
+  exit
+  interface gigabitEthernet 0/0/1
+  ip address 172.16.1.1 255.255.255.0
+  no shutdown
+  end
+  write memory
+
+IMPORTANTE: 'no shutdown' activa la interfaz; 'write memory' guarda.
+Comprobar: show ip interface brief  --> los puertos usados: up/up.
+
+5. RUTAS ESTATICAS
+------------------
+Sintaxis: ip route RED_DESTINO MASCARA SIGUIENTE_SALTO
+
+RX_1 (para llegar a LAN2 y Extranet):
+  ip route 33.1.2.0 255.255.255.0 172.16.1.2
+  ip route 10.0.0.0 255.255.255.0 172.16.1.3
+
+RX_2 (para llegar a LAN1 y Extranet):
+  ip route 33.1.1.0 255.255.255.0 172.16.1.1
+  ip route 10.0.0.0 255.255.255.0 172.16.1.3
+
+RX_3 (para llegar a LAN1 y LAN2):
+  ip route 33.1.1.0 255.255.255.0 172.16.1.1
+  ip route 33.1.2.0 255.255.255.0 172.16.1.2
+
+Se escriben tras 'enable' y 'configure terminal'.
+Acabar con: end  /  write memory
+Ver rutas: show ip route | Solo estaticas: show ip route static
+'C' = red conectada; 'L' = IP local de interfaz; 'S' = estatica.
+
+6. COMPROBACIONES
+-----------------
+Desde PC_1 (Desktop > Command Prompt):
+  ping 33.1.1.3     --> PC_2 (misma LAN)
+  ping 33.1.1.1     --> RX_1 (gateway)
+  ping 33.1.2.2     --> PC_3 (otra LAN)
+  ping 10.0.0.10    --> ServidorWEB
+
+Desde el navegador del PC: http://10.0.0.10
+Si aparece la web, funciona el acceso HTTP al servidor.
+
+Add Simple PDU (icono sobre +): clic en origen y luego destino.
+'Successful' indica que el intercambio ICMP se ha completado.
+
+7. SI ALGO FALLA
+----------------
+1) Revisar IP, mascara y gateway de los PCs/servidor.
+2) Revisar cables y sobre todo PUERTOS correctos del router.
+3) show ip interface brief  --> interfaces activas (up/up).
+4) Probar ping al gateway y luego a otros routers.
+5) show ip route          --> comprobar rutas y siguiente salto.
+6) En switch: show interfaces status  /  show vlan brief
+7) Repetir primer ping si falla: puede estar resolviendo ARP.
+
+En nuestra practica fallaron inicialmente algunos pings entre
+routers y entre PCs. Tras revisar conexiones y configuracion,
+se comprobo que PC_1 llegaba al servidor y cargaba su web.
+No se confirmo una unica causa para todos los fallos.
+
+8. ULTIMO APARTADO: PDU Y MODELO OSI
+------------------------------------
+- Pasar a Simulation y filtrar ICMP.
+- Add Simple PDU: PC_1 (origen) --> PC_3 (destino).
+- Abrir el sobre: OSI Model / PDU Details.
+- Avanzar con Capture/Forward y mirar el paquete en RX_1.
+
+CLAVE DEL EXAMEN:
+- IP origen/destino: PC_1 = 33.1.1.2; PC_3 = 33.1.2.2.
+- Las IP de origen/destino se mantienen en el recorrido normal.
+- Las MAC de la trama cambian al pasar por cada router.
+- PC_1 envia inicialmente la trama a la MAC de su gateway RX_1,
+  porque PC_3 esta en otra red.
+- El router consulta su tabla, quita la trama anterior y crea
+  otra trama para el siguiente enlace.
+
+9. MINI CHULETA
+---------------
+enable                   Entrar en modo privilegiado
+configure terminal       Configurar el router
+interface ...            Seleccionar puerto
+ip address IP MASCARA    Asignar IP al puerto
+no shutdown              Activar puerto
+exit / end               Salir de configuracion
+write memory             Guardar cambios
+show ip interface brief  Ver estado e IP de puertos
+show ip route            Ver tabla de rutas
+show ip route static     Ver rutas estaticas
+show arp                 Ver IP y MAC conocidas
+ping IP                  Probar conectividad
+
+RECORDATORIO FINAL
+------------------
+Misma red -> normalmente se comunican por switch, sin router.
+Distinta red -> hace falta gateway y rutas de ida Y vuelta.
+IP = identifica el destino logico; MAC = entrega en cada enlace.
+
+Basado en el guion Seminario 1 y en las comprobaciones de la practica.
+============================================================
