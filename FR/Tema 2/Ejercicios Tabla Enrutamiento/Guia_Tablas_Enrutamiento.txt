@@ -1,0 +1,126 @@
+GUIA DE ESTUDIO - TABLAS DE ENRUTAMIENTO IPv4
+===========================================
+Asignatura: Redes / Fundamentos de Redes
+Objetivo: saber construir y comprobar las tablas de cualquier router.
+
+1. CONCEPTOS QUE DEBES SABER
+----------------------------
+- Router: dispositivo que reenvia paquetes entre redes IP diferentes.
+- Tabla de enrutamiento: conjunto de rutas que usa un router para decidir por donde enviar un paquete.
+- Direccion IP: identifica una interfaz dentro de una red (ej.: 192.168.1.1).
+- Red o prefijo de destino: conjunto de IP que comparten bits de red (ej.: 192.168.3.0/24).
+- Mascara: separa los bits de red de los bits de host.
+- /24, /26, etc.: numero de bits a 1 en la mascara (notacion CIDR).
+- Interfaz de salida: interfaz LOCAL del router desde la que sale el paquete.
+- Salto siguiente (next hop): IP de la interfaz de un router VECINO al que envio el paquete.
+- Red directamente conectada: red a la que mi router pertenece mediante alguna de sus interfaces. No requiere un router de salto siguiente.
+- Ruta estatica: ruta configurada manualmente.
+- Ruta por defecto: 0.0.0.0/0; se usa si no hay una ruta mas especifica hacia el destino.
+- Loopback: interfaz logica local (por ejemplo lo, 127.0.0.1/32 en el ejercicio).
+- Switch: interconecta equipos dentro de una red local; no es un salto de enrutamiento en este esquema.
+
+2. LAS COLUMNAS DE UNA TABLA
+----------------------------
+DESTINO: red de destino; no la IP de un equipo cualquiera.
+SALTO SIGUIENTE: IP del vecino inmediato que acerca al destino; '*' en las rutas directas si asi lo pide el ejercicio.
+MASCARA /: longitud del prefijo, por ejemplo /24.
+MASCARA DECIMAL: 255.255.255.0 para /24.
+INTERFAZ: direccion o nombre de la interfaz DE MI ROUTER por la que envio; nunca la interfaz remota.
+
+Nota: el formato concreto de las columnas depende del ejercicio o del sistema operativo. En un router real pueden aparecer tambien metricas y otros campos.
+
+3. PROCEDIMIENTO PARA CONSTRUIR UNA TABLA
+-----------------------------------------
+PASO 1. Elige un router: RA, RB, RC, RD o RE. Cada uno tiene SU PROPIA tabla.
+PASO 2. Dibuja o apunta todas las redes de la topologia y sus mascaras.
+PASO 3. Identifica todas las interfaces del router elegido y su IP.
+PASO 4. Agrega las redes directamente conectadas: salto siguiente '*' y su interfaz local correspondiente.
+PASO 5. Para cada red remota, traza el camino desde tu router al destino.
+PASO 6. Identifica el PRIMER router al que enviaras el paquete (no el ultimo router del camino). Anota su IP en la red compartida con tu router.
+PASO 7. Anota la interfaz LOCAL que permite llegar a ese primer router.
+PASO 8. Copia la mascara de la red de destino. NO la deduzcas de su ultimo octeto ni uses la mascara de la red por la que sales.
+PASO 9. Si existe una salida general a otras redes/Internet, agrega una ruta por defecto /0 hacia el vecino apropiado.
+PASO 10. Comprueba que las rutas de regreso tambien existen en los otros routers cuando el ejercicio pide conectividad bidireccional.
+
+4. EJEMPLOS CON TU ESQUEMA
+--------------------------
+Redes que aparecen rotuladas en el dibujo:
+  192.168.1.0/24 : red compartida entre RA, RB y RD (SW1).
+  192.168.2.0/24 : LAN A, conectada a RA.
+  192.168.3.0/24 : LAN B, conectada a RB.
+  192.168.0.0/24 : red compartida entre RD, RC y RE (SW2).
+  192.168.4.0/24 : LAN C, conectada a RC.
+
+En la tabla del fichero figura que RA usa la IP 192.168.1.1 en SW1 y 192.168.2.1 en LAN A. Para los siguientes ejemplos SUPONEMOS que RD tiene 192.168.1.2 y RB tiene 192.168.1.3; hay que comprobar estas IP con el enunciado completo porque el diagrama no las rotula.
+
+SI ESTOY EN RA:
+- A 192.168.1.0/24: directamente conectado; salida 192.168.1.1; sin salto siguiente.
+- A 192.168.2.0/24: directamente conectado; salida 192.168.2.1; sin salto siguiente.
+- A 192.168.3.0/24 (LAN B): RA -> RB -> LAN B. Siguiente salto: 192.168.1.3 (RB). Salida de RA: 192.168.1.1.
+- A 192.168.4.0/24 (LAN C): RA -> RD -> RC -> LAN C. Siguiente salto: 192.168.1.2 (RD). Salida de RA: 192.168.1.1.
+- A 192.168.0.0/24: RA -> RD. Siguiente salto: 192.168.1.2. Salida de RA: 192.168.1.1.
+- A otras redes por RE: RA -> RD -> RE. La ruta por defecto de RA apunta a RD (192.168.1.2), NO directamente a RE.
+
+ATENCION: la tabla de tu archivo incluye mascaras /26, /30, /28 y /25, mientras que el dibujo rotula esas redes como /24. Si el enunciado del profesor incluye otro plan de direccionamiento, prevalece el dato oficial del enunciado; si no, para resolver segun el dibujo usa /24.
+
+5. MASCARAS QUE CONVIENE MEMORIZAR
+----------------------------------
+CIDR   Mascara decimal      Direcciones totales por bloque
+/0     0.0.0.0              Ruta por defecto (abarca todo IPv4)
+/24    255.255.255.0        256
+/25    255.255.255.128      128
+/26    255.255.255.192       64
+/27    255.255.255.224       32
+/28    255.255.255.240       16
+/29    255.255.255.248        8
+/30    255.255.255.252        4
+/32    255.255.255.255        1
+
+En una subred IPv4 convencional, las direcciones de host utilizables suelen ser 2^(32-prefijo) - 2; hay excepciones, como /31 en enlaces punto a punto y /32 para una sola direccion.
+
+Ejemplo: /28 son 28 bits a 1:
+11111111.11111111.11111111.11110000 = 255.255.255.240
+
+6. COMO ELIGE UNA RUTA UN ROUTER
+--------------------------------
+El router busca rutas que coincidan con la IP de destino y elige la de prefijo MAS LARGO (mas especifica). Una ruta /24 gana a una /0 si ambas coinciden. Si varias rutas tienen la misma especificidad, entran en juego otros criterios de seleccion segun el equipo y su configuracion.
+
+Ejemplo: para 192.168.3.50, una ruta 192.168.3.0/24 tiene prioridad frente a 0.0.0.0/0.
+
+7. ERRORES TIPICOS DE EXAMEN
+----------------------------
+[X] Poner en 'salto siguiente' la IP del router FINAL en vez del vecino inmediato.
+[X] Usar como 'interfaz' la direccion del router vecino, no la del router estudiado.
+[X] Poner la mascara de la interfaz de salida en lugar de la mascara del destino.
+[X] Confundir red directamente conectada con red remota.
+[X] Pensar que el switch cuenta como router y necesita un salto en la tabla.
+[X] Creer que una unica tabla sirve para los 5 routers.
+[X] Configurar solo la ida sin comprobar la ruta de vuelta.
+[X] Escribir una IP de host como red sin comprobar el prefijo.
+[X] Usar la ruta por defecto incluso cuando hay otra ruta mas especifica.
+
+8. PLANTILLA PARA RESOLVER CUALQUIER EJERCICIO
+----------------------------------------------
+Router que estoy configurando: __________
+IP e interfaces locales: _______________
+Redes directamente conectadas: _________
+
+Destino        Salto siguiente       Mascara /       Mascara decimal      Interfaz local
+_____________  ___________________   _____________   ___________________  _______________
+_____________  ___________________   _____________   ___________________  _______________
+_____________  ___________________   _____________   ___________________  _______________
+
+PARA CADA RUTA PREGUNTATE:
+1) ¿Esta red esta conectada directamente a MI router?
+2) Si no, ¿cual es el PRIMER router del camino?
+3) ¿Que IP tiene ese vecino en el enlace que compartimos?
+4) ¿Por cual de MIS interfaces llego a ese vecino?
+5) ¿Que mascara tiene LA RED DESTINO?
+
+REGLA PARA MEMORIZAR:
+DESTINO = adonde quiero llegar.
+SALTO SIGUIENTE = a quien entrego ahora el paquete.
+INTERFAZ = por donde sale de mi router.
+MASCARA = tamaño de la red de destino.
+
+FIN DE LA GUIA
