@@ -1,0 +1,1 @@
+Contraseña volumenes logicos cifrados (vg_raid1) -> dra-123-456
