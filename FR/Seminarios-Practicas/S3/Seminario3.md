@@ -35,85 +35,85 @@ Red de interconexión RB-RC-RD-RE -> 4 Interfaces
 
 ### **Subredes**
 
-| Red | Subred | Máscara | IP tilizables | Broadcast |
-| --- | --- | --- | --- | --- |
-| Departamento A | 192.168.0.0/25 | 255.255.255.128 | .1 – .126 | 192.168.0.127 |
-| Departamento B | 192.168.1.0/25 | 255.255.255.128 | .1 – .126 | 192.168.1.127 |
-| WiFi | 192.168.2.0/25 | 255.255.255.0 | .1 – .254 | 192.168.2.255 |
-| Routers RC-RD-RE-RB | 192.168.3.0/25 | 255.255.255.248 | .1 - .6 | 192.168.3.7 |
-| Extranet | 192.168.4.0/25 | 255.255.255.248 | .1 - .6 | 192.168.4.7 |
+| Red                 | Subred         | Máscara         | IP tilizables | Broadcast     |
+| ------------------- | -------------- | --------------- | ------------- | ------------- |
+| Departamento A      | 192.168.0.0/25 | 255.255.255.128 | .1 – .126     | 192.168.0.127 |
+| Departamento B      | 192.168.1.0/25 | 255.255.255.128 | .1 – .126     | 192.168.1.127 |
+| WiFi                | 192.168.2.0/25 | 255.255.255.0   | .1 – .254     | 192.168.2.255 |
+| Routers RC-RD-RE-RB | 192.168.3.0/25 | 255.255.255.248 | .1 - .6       | 192.168.3.7   |
+| Extranet            | 192.168.4.0/25 | 255.255.255.248 | .1 - .6       | 192.168.4.7   |
 
 ### Direcciones de las Interfaces de los routers
 
-| Router | Interfaz | Salto | Interfaz |
-| --- | --- | --- | --- |
-| RC | eth1 | `192.168.0.1/25` | Departamento A |
-| RC | eth0 | `192.168.3.2/29` | Red entre routers |
-| RD | eth1 | `192.168.1.1/25` | Departamento B |
-| RD | eth0 | `192.168.3.3/29` | Red entre routers |
-| RE | eth1 / lado WiFi | `192.168.2.1/24` | Visitantes |
-| RE | eth0 | `192.168.3.4/29` | Red entre routers |
-| RB | eth1 | `192.168.3.1/29` | Red entre routers |
-| RB | eth0 | `192.168.4.1/29` | Extranet |
-| RA | eth1 | `192.168.4.2/29` | Extranet |
-| RA | eth0 | `44.44.44.44` | Salida pública a Internet |
-| Servidor WEB | Interfaz de red | `192.168.4.3/29` | Extranet |
-| Servidor MAIL | Interfaz de red | `192.168.4.4/29` | Extranet |
+| Router        | Interfaz         | Salto            | Interfaz                  |
+| ------------- | ---------------- | ---------------- | ------------------------- |
+| RC            | eth1             | `192.168.0.1/25` | Departamento A            |
+| RC            | eth0             | `192.168.3.2/29` | Red entre routers         |
+| RD            | eth1             | `192.168.1.1/25` | Departamento B            |
+| RD            | eth0             | `192.168.3.3/29` | Red entre routers         |
+| RE            | eth1 / lado WiFi | `192.168.2.1/24` | Visitantes                |
+| RE            | eth0             | `192.168.3.4/29` | Red entre routers         |
+| RB            | eth1             | `192.168.3.1/29` | Red entre routers         |
+| RB            | eth0             | `192.168.4.1/29` | Extranet                  |
+| RA            | eth1             | `192.168.4.2/29` | Extranet                  |
+| RA            | eth0             | `44.44.44.44`    | Salida pública a Internet |
+| Servidor WEB  | Interfaz de red  | `192.168.4.3/29` | Extranet                  |
+| Servidor MAIL | Interfaz de red  | `192.168.4.4/29` | Extranet                  |
 
 
 ### Tablas de Enrutamiento
 
 #### Router RC
 
-| Destino | Máscara | Siguiente salto | Interfaz | Explicación |
-| --- | --- | --- | --- | --- |
-| `192.168.3.0` | /29 | Directa | eth0 | Red RB-RC-RD-RE |
-| `192.168.0.0` | /25 | Directa | eth1 | Departamento A |
-| `0.0.0.0` | /0 | `192.168.3.1` | eth0 | El resto se envía a RB |
+| Destino       | Máscara | Siguiente salto | Interfaz | Explicación            |
+| ------------- | ------- | --------------- | -------- | ---------------------- |
+| `192.168.3.0` | /29     | Directa         | eth0     | Red RB-RC-RD-RE        |
+| `192.168.0.0` | /25     | Directa         | eth1     | Departamento A         |
+| `0.0.0.0`     | /0      | `192.168.3.1`   | eth0     | El resto se envía a RB |
 
 #### Router RD
 
-| Destino | Máscara | Siguiente salto | Interfaz | Explicación |
-| --- | --- | --- | --- | --- |
-| `192.168.3.0` | /29 | Directa | eth0 | Red RB-RC-RD-RE |
-| `192.168.1.0` | /25 | Directa | eth1 | Departamento B |
-| `0.0.0.0` | /0 | `192.168.3.1` | eth0 | El resto se envía a RB |
+| Destino       | Máscara | Siguiente salto | Interfaz | Explicación            |
+| ------------- | ------- | --------------- | -------- | ---------------------- |
+| `192.168.3.0` | /29     | Directa         | eth0     | Red RB-RC-RD-RE        |
+| `192.168.1.0` | /25     | Directa         | eth1     | Departamento B         |
+| `0.0.0.0`     | /0      | `192.168.3.1`   | eth0     | El resto se envía a RB |
 
 #### Router RE
 
-| Destino | Máscara | Siguiente salto | Interfaz | Explicación |
-| --- | --- | --- | --- | --- |
-| `192.168.3.0` | /29 | Directa | eth0 | Red RB-RC-RD-RE |
-| `192.168.2.0` | /24 | Directa | eth1 | Red WiFi de visitantes |
-| `0.0.0.0` | /0 | `192.168.3.1` | eth0 | El resto se envía a RB |
+| Destino       | Máscara | Siguiente salto | Interfaz | Explicación            |
+| ------------- | ------- | --------------- | -------- | ---------------------- |
+| `192.168.3.0` | /29     | Directa         | eth0     | Red RB-RC-RD-RE        |
+| `192.168.2.0` | /24     | Directa         | eth1     | Red WiFi de visitantes |
+| `0.0.0.0`     | /0      | `192.168.3.1`   | eth0     | El resto se envía a RB |
 
 #### Router RB
 
-| Destino | Máscara | Siguiente salto | Interfaz | Explicación |
-| --- | --- | --- | --- | --- |
-| `192.168.4.0` | /29 | Directa | eth0 | Extranet con RA y servidores |
-| `192.168.3.0` | /29 | Directa | eth1 | Red entre RB, RC, RD y RE |
-| `192.168.0.0` | /25 | `192.168.3.2` | eth1 | Departamento A, por RC |
-| `192.168.1.0` | /25 | `192.168.3.3` | eth1 | Departamento B, por RD |
-| `192.168.2.0` | /24 | `192.168.3.4` | eth1 | Visitantes, por RE |
-| `0.0.0.0` | /0 | `192.168.4.2` | eth0 | Salida a Internet, por RA |
+| Destino       | Máscara | Siguiente salto | Interfaz | Explicación                  |
+| ------------- | ------- | --------------- | -------- | ---------------------------- |
+| `192.168.4.0` | /29     | Directa         | eth0     | Extranet con RA y servidores |
+| `192.168.3.0` | /29     | Directa         | eth1     | Red entre RB, RC, RD y RE    |
+| `192.168.0.0` | /25     | `192.168.3.2`   | eth1     | Departamento A, por RC       |
+| `192.168.1.0` | /25     | `192.168.3.3`   | eth1     | Departamento B, por RD       |
+| `192.168.2.0` | /24     | `192.168.3.4`   | eth1     | Visitantes, por RE           |
+| `0.0.0.0`     | /0      | `192.168.4.2`   | eth0     | Salida a Internet, por RA    |
 
 #### Router RA
 
-| Destino | Máscara | Siguiente salto | Interfaz | Explicación |
-| --- | --- | --- | --- | --- |
-| `44.44.44.0` | /24* | Directa | eth0 | Enlace con el ISP, **según la tabla del profesor** |
-| `192.168.4.0` | /29 | Directa | eth1 | Extranet |
-| `192.168.0.0` | /22 | `192.168.4.1` | eth1 | Ruta agregada hacia las redes internas, por RB |
-| `0.0.0.0` | /0 | Gateway ISP (no indicado) | eth0 | Salida general a Internet |
+| Destino       | Máscara | Siguiente salto           | Interfaz | Explicación                                        |
+| ------------- | ------- | ------------------------- | -------- | -------------------------------------------------- |
+| `44.44.44.0`  | /24*    | Directa                   | eth0     | Enlace con el ISP, **según la tabla del profesor** |
+| `192.168.4.0` | /29     | Directa                   | eth1     | Extranet                                           |
+| `192.168.0.0` | /22     | `192.168.4.1`             | eth1     | Ruta agregada hacia las redes internas, por RB     |
+| `0.0.0.0`     | /0      | Gateway ISP (no indicado) | eth0     | Salida general a Internet                          |
 
 #### Servidores WEB y MAIL
 
-| Destino | Máscara | Siguiente salto | Interfaz | Explicación |
-| --- | --- | --- | --- | --- |
-| `192.168.4.0` | /29 | Directa | eth0 | Red Extranet |
-| `192.168.0.0` | /22 | `192.168.4.1` | eth0 | Redes corporativas, por RB |
-| `0.0.0.0` | /0 | `192.168.4.2` | eth0 | Internet, por RA |
+| Destino       | Máscara | Siguiente salto | Interfaz | Explicación                |
+| ------------- | ------- | --------------- | -------- | -------------------------- |
+| `192.168.4.0` | /29     | Directa         | eth0     | Red Extranet               |
+| `192.168.0.0` | /22     | `192.168.4.1`   | eth0     | Redes corporativas, por RB |
+| `0.0.0.0`     | /0      | `192.168.4.2`   | eth0     | Internet, por RA           |
 
 ## PROBLEMA 2
 
@@ -125,12 +125,12 @@ OSPF: busca el camino con menor coste, calculado a partir del ancho de banda de 
 
 ###  RIP
 
-|Camino entre routers | Saltos |
-| --- | --- |
-|R1 → R2 → R4 → R5 | 3 |
-|R1 → R6 → R4 → R5 | 3 |
-|R1 → R6 → R7 → R5 | 3 |
-|R1 → R2 → R3 → R4 → R5 | 4 |
+| Camino entre routers   | Saltos |
+| ---------------------- | ------ |
+| R1 → R2 → R4 → R5      | 3      |
+| R1 → R6 → R4 → R5      | 3      |
+| R1 → R6 → R7 → R5      | 3      |
+| R1 → R2 → R3 → R4 → R5 | 4      |
 
 En RIP no se tiene información de las velocidades, por lo que las 3 primeras rutas con 3 saltos son iguales de coste.
 
@@ -171,28 +171,28 @@ En este caso tenemos un rango público completo ( 150.150.150.0/24 )
 
 32 - 24 = 8 -> 2⁸ = 256 direcciones
 
-| Subred        | IPs | Cálculo                |
-|   ----------  | --- |  ------------------    |
-| A + RA        | 101 | 2⁷ - 2 = 126 ->  /25   |
-| B + RB        | 51  | 2⁶ - 2 = 62  ->  /26   |
-| C + RC        | 26  | 2⁵ - 2 = 30  ->  /27   |
-| RX + 3 Serv.  | 4   | 2³ - 2 = 6   ->  /29   |
-| RX - RA       | 2   | 2² - 2 = 2   ->  /30   |
-| RA - RB       | 2   | 2² - 2 = 2   ->  /30   |
-| RB - RC       | 2   | 2² - 2 = 2   ->  /30   |
+| Subred       | IPs | Cálculo              |
+| ------------ | --- | -------------------- |
+| A + RA       | 101 | 2⁷ - 2 = 126 ->  /25 |
+| B + RB       | 51  | 2⁶ - 2 = 62  ->  /26 |
+| C + RC       | 26  | 2⁵ - 2 = 30  ->  /27 |
+| RX + 3 Serv. | 4   | 2³ - 2 = 6   ->  /29 |
+| RX - RA      | 2   | 2² - 2 = 2   ->  /30 |
+| RA - RB      | 2   | 2² - 2 = 2   ->  /30 |
+| RB - RC      | 2   | 2² - 2 = 2   ->  /30 |
 
 
 ### Distribución de Redes
 
-| Subred       | Prefijo | Dirección de red | Primera IP | Última IP | Broadcast |
-| ------------ | ------- | ---------------- | ---------- | --------- | --------- |
-| A            | /25     | 150.150.150.0    | .1         | .126      | .127      |
-| B            | /26     | 150.150.150.128  | .129       | .190      | .191      |
-| C            | /27     | 150.150.150.192  | .193       | .222      | .223      |
-| Servidores   | /29     | 150.150.150.224  | .225       | .230      | .231      |
-| RX–RA        | /30     | 150.150.150.232  | .233       | .234      | .235      |
-| RA–RB        | /30     | 150.150.150.236  | .237       | .238      | .239      |
-| RB–RC        | /30     | 150.150.150.240  | .241       | .242      | .243      |
+| Subred     | Prefijo | Dirección de red | Primera IP | Última IP | Broadcast |
+| ---------- | ------- | ---------------- | ---------- | --------- | --------- |
+| A          | /25     | 150.150.150.0    | .1         | .126      | .127      |
+| B          | /26     | 150.150.150.128  | .129       | .190      | .191      |
+| C          | /27     | 150.150.150.192  | .193       | .222      | .223      |
+| Servidores | /29     | 150.150.150.224  | .225       | .230      | .231      |
+| RX–RA      | /30     | 150.150.150.232  | .233       | .234      | .235      |
+| RA–RB      | /30     | 150.150.150.236  | .237       | .238      | .239      |
+| RB–RC      | /30     | 150.150.150.240  | .241       | .242      | .243      |
 
 Si sumamos todas las redes -> 128 + 64 + 32 + 8 + 4 + 4 + 4 = 244       \
 Por lo que nos quedan 256 - 244 = 12 direcciones libres.
@@ -227,13 +227,13 @@ El maximo es 500-20 = 480 bytes, que ya es múltiplo de 8.
 
 504 = 480 + 24
 
-| Fragmento | Datos | Offset | MF |
-| --------- | ----- | ------ | -- |
-| 1A        | 480   | 0      | 1  |
-| 1B        | 480   | 60     | 1  |
-| 1C        | 16    | 120    | 1  |
-| 2A        | 480   | 122    | 1  |
-| 2B        | 24    | 182    | 0  |
+| Fragmento | Datos | Offset | MF  |
+| --------- | ----- | ------ | --  |
+| 1A        | 480   | 0      | 1   |
+| 1B        | 480   | 60     | 1   |
+| 1C        | 16    | 120    | 1   |
+| 2A        | 480   | 122    | 1   |
+| 2B        | 24    | 182    | 0   |
 
 
 
@@ -262,12 +262,12 @@ Paquete original de 1480 bytes.
 
 1480 = 480 + 480 + 480 + 40
 
-| Fragmento | Datos | Offset | MF |
-| --------- | ----- | ------ | -- |
-| 1         | 480   | 0      | 1  |
-| 2         | 480   | 60     | 1  |
-| 3         | 480   | 120    | 1  |
-| 4         | 40    | 180    | 0  |
+| Fragmento | Datos | Offset | MF  |
+| --------- | ----- | ------ | --  |
+| 1         | 480   | 0      | 1   |
+| 2         | 480   | 60     | 1   |
+| 3         | 480   | 120    | 1   |
+| 4         | 40    | 180    | 0   |
 
 
 **Segundo caso ( MTU 1000 y 2000 Bytes )**
