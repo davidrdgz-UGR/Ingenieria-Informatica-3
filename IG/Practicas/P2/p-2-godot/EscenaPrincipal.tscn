@@ -1,0 +1,18 @@
+[gd_scene format=3 uid="uid://etrdb8i0qsbc"]
+
+[ext_resource type="Script" uid="uid://bexv0jywxxjej" path="res://scripts/camara_3d_orbital_simple.gd" id="1_8ijfc"]
+[ext_resource type="Script" uid="uid://b2m50n36dqm0c" path="res://scripts/script_raiz.gd" id="1_nwmal"]
+[ext_resource type="PackedScene" uid="uid://bp0rh5p3s8evm" path="res://modelos3D/gato/gato.glb" id="3_l726g"]
+
+[node name="EscenaPrincipal" type="Node3D" unique_id=1053995305]
+script = ExtResource("1_nwmal")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=377740524]
+
+[node name="Camera3D-Orbital" type="Camera3D" parent="." unique_id=1075769407]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.21053863, 1.753397, 4.6161795)
+script = ExtResource("1_8ijfc")
+
+[node name="ObjetosP2" type="Node3D" parent="." unique_id=2067876913]
+
+[node name="gato" parent="ObjetosP2" unique_id=1828721568 instance=ExtResource("3_l726g")]
