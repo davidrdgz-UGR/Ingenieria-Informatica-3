@@ -1,0 +1,6 @@
+User: x5123750
+Pswd: x5123750
+
+Nombre Servicio: practbd
+puerto: 1521
+N.Host: oracle0.ugr.es

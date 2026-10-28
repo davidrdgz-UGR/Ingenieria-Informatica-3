@@ -1,4 +1,4 @@
-DDSI
+DDSI	( NO ORDINARIA )
 	EVALUCAIÓN
 	
 	TEORICA (40%)
@@ -9,19 +9,19 @@ DDSI
 		- Trabajo Grupal
 
 
-FR
+FR ( PUEDES SALTARTE ORDINARIA )
 
 IG
 	
 
-IS
+IS	( PUEDES EVITAR ORDINARIA )
 	
 	EXAMANES
 		Parciales 1-2, 3-4, 5-6.
 		Ordinaria -> Guarda Parciales
 		Extraordinaria -> No guarda nada
 
-MC
+MC ( SI ORDINARIA)
 
 	EVALUACIÓN
 		- Examen Final Teoría 50%	( NO PARCIALES ) 

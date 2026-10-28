@@ -277,9 +277,3 @@ Los fragmentos ya son menores que las MTU de los siguientes enlaces, por lo que 
 Los routers intermedios no reensamblan los fragmentos. Estos mantienen sus tamaños, offsets y flags MF hasta llegar al PC del trabajador.
 
 El reensamblado se realiza en el dispositivo de destino.
-
-
-
-
-
-
