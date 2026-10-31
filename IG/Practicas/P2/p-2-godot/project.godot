@@ -14,6 +14,11 @@ config/name="P2-Godot"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
 
+[autoload]
+
+Utilidades="*uid://c7egtw2aw7e7v"
+Revolucion="*uid://dvyrnmhacyeuu"
+
 [display]
 
 window/stretch/mode="canvas_items"

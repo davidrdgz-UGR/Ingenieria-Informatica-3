@@ -3,6 +3,17 @@
 [ext_resource type="Script" uid="uid://bexv0jywxxjej" path="res://scripts/camara_3d_orbital_simple.gd" id="1_8ijfc"]
 [ext_resource type="Script" uid="uid://b2m50n36dqm0c" path="res://scripts/script_raiz.gd" id="1_nwmal"]
 [ext_resource type="PackedScene" uid="uid://bp0rh5p3s8evm" path="res://modelos3D/gato/gato.glb" id="3_l726g"]
+[ext_resource type="ArrayMesh" uid="uid://bb3gpdwyv66ho" path="res://modelos3D/conejo/model.obj" id="4_ti6ls"]
+[ext_resource type="Script" uid="uid://b7qw7b1k2cwcy" path="res://scripts/donut.gd" id="5_reaqe"]
+[ext_resource type="Script" uid="uid://cryq7fewujly4" path="res://scripts/cubo_8_vertices.gd" id="6_1dsbl"]
+[ext_resource type="Script" uid="uid://fsa7y0wmcjbw" path="res://scripts/cubo24.gd" id="7_trb75"]
+[ext_resource type="Script" uid="uid://h1jryslrgp8q" path="res://scripts/objeto_revolucion.gd" id="8_o68of"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_c0w1o"]
+size = Vector3(10, 0.2, 10)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_o68of"]
+albedo_color = Color(0.19730985, 0.6924261, 0.92305964, 1)
 
 [node name="EscenaPrincipal" type="Node3D" unique_id=1053995305]
 script = ExtResource("1_nwmal")
@@ -10,9 +21,35 @@ script = ExtResource("1_nwmal")
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=377740524]
 
 [node name="Camera3D-Orbital" type="Camera3D" parent="." unique_id=1075769407]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.21053863, 1.753397, 4.6161795)
+transform = Transform3D(-0.5505825, 0, -0.8347808, 0, 1, 0, 0.8347808, 0, -0.5505825, -4.303399, 3.030828, -3.0002704)
 script = ExtResource("1_8ijfc")
+
+[node name="Plataforma" type="MeshInstance3D" parent="." unique_id=1479527120]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
+visible = false
+mesh = SubResource("BoxMesh_c0w1o")
+surface_material_override/0 = SubResource("StandardMaterial3D_o68of")
 
 [node name="ObjetosP2" type="Node3D" parent="." unique_id=2067876913]
 
 [node name="gato" parent="ObjetosP2" unique_id=1828721568 instance=ExtResource("3_l726g")]
+
+[node name="conejo" type="MeshInstance3D" parent="ObjetosP2" unique_id=1744714791]
+transform = Transform3D(-2.599495, 0, -1.4975393, 0, 3.0000005, 0, 1.4975393, 0, -2.599495, -2.0960517, 0.6661626, 0.45349538)
+mesh = ExtResource("4_ti6ls")
+
+[node name="Donut" type="MeshInstance3D" parent="ObjetosP2" unique_id=1672620192]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.1222672, 0, 0)
+script = ExtResource("5_reaqe")
+
+[node name="Cubo8vertices" type="MeshInstance3D" parent="ObjetosP2" unique_id=1070829537]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -4.197394)
+script = ExtResource("6_1dsbl")
+
+[node name="Cubo24vertices" type="MeshInstance3D" parent="ObjetosP2" unique_id=1438083990]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.042898178, 0, -9.05831)
+script = ExtResource("7_trb75")
+
+[node name="ObjetoRevolucion" type="MeshInstance3D" parent="ObjetosP2" unique_id=819343363]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.100539684, 0, 4.5118794)
+script = ExtResource("8_o68of")

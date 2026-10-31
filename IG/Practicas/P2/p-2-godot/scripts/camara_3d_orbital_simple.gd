@@ -3,7 +3,7 @@ extends Camera3D
 const at   := 2.5   ## ángulo de rot. con teclas (en grados x pulsación)
 const ar   := 0.5   ## ángulo de rot. con ratón (en grados x pixel)
 var   bdrp := false ## botón derecho del ratón presionado sí/no
-var   dz   := 3.0   ## distancia en Z de la cámara al origen
+var   dz   := 6.0   ## distancia en Z de la cámara al origen
 var   dxy  := Vector2( 0.0, 0.0 ) ## ángulos hor. y vert. (en grados)
 
 func _actualiza_transf_vista(  ) -> void : 
@@ -16,6 +16,7 @@ func _actualiza_transf_vista(  ) -> void :
 
 func _ready() -> void :  ## se ejecuta una vez al inicio
 	_actualiza_transf_vista() ## inicializa la vista al inicio
+	pass
 
 func _input( event : InputEvent ): ## procesa evento de entrada
 	var av : bool = true ## actualizar vista sí/no
