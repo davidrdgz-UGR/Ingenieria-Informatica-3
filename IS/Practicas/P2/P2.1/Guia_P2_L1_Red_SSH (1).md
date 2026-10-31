@@ -459,9 +459,257 @@ No marques una comprobación como superada hasta ver el resultado real. Si SSH f
 
 **No consta verificación final de todos los pasos:** especialmente el error de `semanage`/SELinux y el arranque de SSH tras el cambio de puerto. La guía permite comprobarlos, pero no afirma que ya estén reparados.
 
-**Fuera del desarrollo del PDF específico P2-L1:** claves SSH, `nmap`, `screen`, `fail2ban` y `rkhunter`. Aparecen como requisitos/objetivos en el **guion general** `ISE-P2-InstServ.pdf` (págs. 5–7); no los incorporamos aquí como pasos ejecutados porque acordamos dejar esta lección tal como la llevábamos.
+**Fuera del desarrollo del PDF específico P2-L1:** claves SSH, `nmap`, `screen`, `fail2ban` y `rkhunter`. Aparecen como requisitos/objetivos en el **guion general** `ISE-P2-InstServ.pdf` (págs. 5–7). Se documentan a continuación como **tareas pendientes, no ejecutadas ni verificadas**.
 
 **Cierre:** después de una configuración comprobada y estable, guardar instantáneas de VirtualBox (recordatorio en la pág. 51 de `P2-L1.pdf`).
+
+---
+
+
+# ============================================================
+# ======================= POR HACER ==========================
+# ============================================================
+
+> **IMPORTANTE:** Los siguientes apartados **todavía no los hemos realizado**. Son requisitos y herramientas citados en el **guion general** `ISE-P2-InstServ.pdf` (apartados 3, 4.1, 4.2 y escenario de la Lección 1, págs. 5–7). **No aparecen desarrollados paso a paso** en las diapositivas `P2-L1.pdf`. Los comandos siguientes son una propuesta de ejecución, no una transcripción del profesor.
+>
+> **Antes de comenzar:** verifica que SSH funciona en el puerto elegido (`2222` en nuestro caso), que `sshd` está activo y que conservas acceso local desde la consola de VirtualBox. Sustituye `IP_SERVIDOR`, `IP_CLIENTE` y `davidra` por los valores reales. No cierres la sesión SSH funcional al cambiar la autenticación.
+
+## Pendiente 1. Autenticación con clave pública SSH
+
+**Objetivo del guion:** permitir autenticación mediante clave pública en el servidor y restringir el acceso por contraseña cuando se haya comprobado el nuevo método.
+
+**CLIENTE (Debian / Ubuntu Server / AlmaLinux):**
+
+```bash
+ssh-keygen -t ed25519
+```
+
+Genera un par de claves. La **privada** se conserva solo en el cliente (`~/.ssh/id_ed25519`) y la **pública** (`~/.ssh/id_ed25519.pub`) se instala en el servidor. Si ya existe una clave, no la sobrescribas; utiliza una ruta diferente o la existente.
+
+```bash
+ssh-copy-id -p 2222 davidra@IP_SERVIDOR
+```
+
+Añade la clave pública a `~/.ssh/authorized_keys` del usuario del servidor. En el cliente Debian/Ubuntu, si no existe `ssh-copy-id`, instala `openssh-client`; en AlmaLinux, `openssh-clients`.
+
+```bash
+ssh -o PreferredAuthentications=publickey -o PasswordAuthentication=no -p 2222 davidra@IP_SERVIDOR
+```
+
+**Comprobación:** debe permitir acceder con la clave, sin solicitar la contraseña de la **cuenta del servidor** (sí puede solicitar la frase de protección de la clave privada).
+
+**SERVIDOR (AlmaLinux; misma directiva en Debian/Ubuntu):**
+
+```bash
+sudo cp -a /etc/ssh/sshd_config /etc/ssh/sshd_config.bak
+sudo nano /etc/ssh/sshd_config
+```
+
+Verifica o deja la directiva sin `#`:
+
+```text
+PubkeyAuthentication yes
+```
+
+**Solo después de comprobar el acceso por clave**, para limitar los métodos basados en contraseña puedes configurar:
+
+```text
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+```
+
+Ten en cuenta las posibles opciones adicionales en `/etc/ssh/sshd_config.d/` y comprueba los valores efectivos:
+
+```bash
+sudo sshd -t
+sudo sshd -T | grep -E '^(pubkeyauthentication|passwordauthentication|kbdinteractiveauthentication) '
+```
+
+Si está bien, aplica los cambios con `sudo systemctl restart sshd` (AlmaLinux) o `sudo systemctl restart ssh` (Debian/Ubuntu). **Prueba en una segunda terminal antes de cerrar la primera**.
+
+## Pendiente 2. Escanear puertos con nmap
+
+**Objetivo del guion:** comprobar los puertos accesibles y diferenciar el escaneo habitual de uno completo. Realizar únicamente sobre nuestras máquinas de laboratorio.
+
+**CLIENTE Debian / Ubuntu:**
+
+```bash
+sudo apt update
+sudo apt install -y nmap
+```
+
+**CLIENTE AlmaLinux:**
+
+```bash
+sudo dnf install -y nmap
+```
+
+**En el cliente (cualquiera de las tres distribuciones):**
+
+```bash
+nmap IP_SERVIDOR
+nmap -p 22,2222 IP_SERVIDOR
+nmap -p- IP_SERVIDOR
+nmap -sV -p 2222 IP_SERVIDOR
+```
+
+- `nmap IP_SERVIDOR`: examina por defecto los puertos TCP más habituales.
+- `-p 22,2222`: comprueba específicamente ambos puertos.
+- `-p-`: escanea todos los puertos TCP.
+- `-sV`: intenta identificar el servicio que escucha.
+
+**Comprobación:** si SSH se configuró correctamente en el puerto 2222, ese puerto debe aparecer accesible desde el cliente. Que el 22 figure cerrado o filtrado depende de las reglas aplicadas. El puerto alternativo **no es una medida de autenticación**.
+
+## Pendiente 3. Crear y recuperar sesiones con screen
+
+**Objetivo del guion:** dejar una sesión funcionando, desconectarse y volver a recuperarla, incluso si quedó adjunta a otra terminal.
+
+**En la máquina donde se practica (normalmente el SERVIDOR):**
+
+Debian / Ubuntu:
+
+```bash
+sudo apt update
+sudo apt install -y screen
+```
+
+AlmaLinux:
+
+```bash
+sudo dnf install -y screen
+```
+
+Si AlmaLinux no encuentra el paquete, comprobar los repositorios disponibles para esa versión; no asumir que está instalado.
+
+```bash
+screen -S practica
+```
+
+Abre una sesión llamada `practica`. Para separarse sin terminarla, pulsar **Ctrl+A**, soltar y pulsar **D**.
+
+```bash
+screen -ls
+screen -r practica
+screen -d -r practica
+```
+
+- `-ls`: lista las sesiones.
+- `-r`: recupera la sesión separada.
+- `-d -r`: la separa de otro terminal y la recupera aquí.
+
+Para cerrarla definitivamente, ejecutar `exit` dentro de la última ventana de `screen`.
+
+**Comprobación:** volver a la misma sesión de terminal que dejamos abierta.
+
+## Pendiente 4. Instalar y configurar fail2ban
+
+**Objetivo del guion:** limitar intentos repetidos de autenticación fallidos. Los parámetros propuestos son **ejemplos de laboratorio**, no cifras impuestas por el profesor.
+
+**SERVIDOR Debian / Ubuntu:**
+
+```bash
+sudo apt update
+sudo apt install -y fail2ban python3-systemd
+```
+
+**SERVIDOR AlmaLinux:**
+
+```bash
+sudo dnf install -y epel-release
+sudo dnf install -y fail2ban fail2ban-systemd
+```
+
+En AlmaLinux puede ser necesario habilitar otros repositorios, según la versión y las dependencias disponibles. Comprobar con `dnf` si algún paquete no aparece.
+
+Crear el fichero de configuración local (en vez de editar el `jail.conf` del paquete):
+
+```bash
+sudo nano /etc/fail2ban/jail.local
+```
+
+Contenido de ejemplo:
+
+```ini
+[DEFAULT]
+bantime = 600
+findtime = 600
+maxretry = 3
+
+[sshd]
+enabled = true
+port = 2222
+backend = systemd
+```
+
+- `bantime`: duración del bloqueo en segundos.
+- `findtime`: ventana de observación en segundos.
+- `maxretry`: número de fallos tolerado en esa ventana.
+- `port`: puerto SSH configurado.
+
+**Validar y arrancar en Debian/Ubuntu/AlmaLinux:**
+
+```bash
+sudo fail2ban-client -t
+sudo systemctl enable --now fail2ban
+sudo fail2ban-client status
+sudo fail2ban-client status sshd
+```
+
+Si ya estaba arrancado al editar el archivo, utilizar `sudo systemctl restart fail2ban` después de validar. Comprobar el estado de `sshd` y, si falla la integración con el cortafuegos, revisar los registros:
+
+```bash
+sudo journalctl -u fail2ban -n 50 --no-pager
+```
+
+**Comprobación:** el servicio está activo y aparece la cárcel `sshd`. Evitar provocar un autobloqueo desde la única máquina que permite administrar el servidor.
+
+## Pendiente 5. Ejecutar y revisar rkhunter
+
+**Objetivo del guion:** buscar indicios de rootkits y saber interpretar los avisos.
+
+**SERVIDOR Debian / Ubuntu:**
+
+```bash
+sudo apt update
+sudo apt install -y rkhunter
+```
+
+**SERVIDOR AlmaLinux:**
+
+```bash
+sudo dnf install -y epel-release
+sudo dnf install -y rkhunter
+```
+
+Si el paquete no está disponible, comprobar repositorios y compatibilidad de la versión concreta.
+
+```bash
+sudo rkhunter --update
+sudo rkhunter --check --sk
+```
+
+- `--update`: intenta actualizar la información utilizada por la herramienta.
+- `--check`: ejecuta las comprobaciones.
+- `--sk`: omite las pausas entre pruebas.
+
+Revisar los avisos del registro (la ruta puede variar según la distribución):
+
+```bash
+sudo grep -i warning /var/log/rkhunter.log
+```
+
+**Comprobación:** revisar los resultados e investigar los avisos; una advertencia **no demuestra automáticamente** una infección. No usar `rkhunter --propupd` para aceptar como referencia los archivos de un sistema sospechoso.
+
+## Lista de verificación de la parte pendiente
+
+- [ ] Claves SSH creadas en el cliente y acceso por clave pública comprobado.
+- [ ] Restricción de autenticación por contraseña aplicada **solo después** de comprobar la clave.
+- [ ] Escaneo `nmap` normal, dirigido al puerto y completo realizado.
+- [ ] Sesión `screen` creada, separada y recuperada.
+- [ ] `fail2ban` instalado, activo y con protección SSH verificada.
+- [ ] `rkhunter` ejecutado y resultado interpretado.
+- [ ] SSH y cortafuegos comprobados al finalizar, sin pérdida de acceso.
+- [ ] Instantánea de VirtualBox guardada cuando todo funcione.
 
 ---
 
