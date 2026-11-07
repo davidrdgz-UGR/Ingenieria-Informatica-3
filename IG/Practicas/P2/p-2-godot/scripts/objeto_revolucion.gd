@@ -70,7 +70,7 @@ func _ready() -> void:
 
 	var mat := StandardMaterial3D.new()
 
-	mat.albedo_color = Color(0.2, 0.7, 0.9)
+	mat.albedo_color = Color(0.694, 0.403, 0.831, 1.0)
 	mat.metallic = 0.2
 	mat.roughness = 0.3
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL

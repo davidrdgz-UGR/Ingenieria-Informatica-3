@@ -7,16 +7,24 @@ var   dz   := 6.0   ## distancia en Z de la cámara al origen
 var   dxy  := Vector2( 0.0, 0.0 ) ## ángulos hor. y vert. (en grados)
 
 func _actualiza_transf_vista(  ) -> void : 
-	var ahr  := ((45.0+float(dxy.x))*2.0*PI)/360.0 ## ang.horiz.radi.
+	var ahr  := ((225.0+float(dxy.x))*2.0*PI)/360.0 ## ang.horiz.radi.
 	var avr  := ((30.0+float(dxy.y))*2.0*PI)/360.0 ## ang.vert.radi.
 	var tras := Transform3D().translated( Vector3( 0.0, 0.0, dz))	
 	var rotx := Transform3D().rotated( Vector3.RIGHT, -avr )
 	var roty := Transform3D().rotated( Vector3.UP, ahr ) 
 	transform = roty*rotx*tras   ## actualiza transform del nodo cámara
 
-func _ready() -> void :  ## se ejecuta una vez al inicio
-	_actualiza_transf_vista() ## inicializa la vista al inicio
-	pass
+func _ready() -> void:
+	var pos := position
+
+	dz = pos.length()
+
+	if dz > 0.001:
+		var ang_horizontal := atan2(pos.x, pos.z)
+		var ang_vertical := asin(pos.y / dz)
+
+		dxy.x = rad_to_deg(ang_horizontal) - 225.0
+		dxy.y = rad_to_deg(ang_vertical) - 30.0
 
 func _input( event : InputEvent ): ## procesa evento de entrada
 	var av : bool = true ## actualizar vista sí/no
