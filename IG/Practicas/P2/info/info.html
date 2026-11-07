@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>info.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> or <div class="page"></div> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h2 id="practica-2--ig"><strong>PRACTICA 2 | IG</strong></h2>
+<p>En esta práctica se ha trabajado con la representación y generación de mallas 3D en Godot, partiendo de los conceptos básicos vistos en la práctica anterior. Se han cargado modelos externos en formatos GLB y OBJ, se ha añadido un modo de visualización wireframe y se ha estudiado el papel de las normales en la iluminación de los objetos.</p>
+<p>También se han comparado distintos tipos de sombreado, se han analizado las diferencias entre mallas suaves y objetos con aristas reales, y se han generado objetos de forma procedural mediante código. Finalmente, se ha implementado un algoritmo de revolución de un perfil 2D alrededor del eje Y para construir una malla tridimensional y calcular sus normales.</p>
+<p>Finalmente, como aporte personal, hemos puesto una plataforma en la que se apoyan todos los objetos generados, para no tenerlos flotando, y hemos cambiado el fondo un Objeto WorldEnvironment para no tener un fondo gris algo desagradable.</p>
+<ul>
+<li>( Los códigos dados por el profesor no los pondrémos en cada apartado )</li>
+</ul>
+<h3 id="modo-de-visualización-wireframe"><strong>Modo de visualización Wireframe</strong></h3>
+<p>Se añadió al nodo raíz de la escena el script script_raiz.gd, cuya función es permitir cambiar entre la visualización normal y el modo wireframe pulsando la tecla W.</p>
+<p>El modo wireframe muestra únicamente las aristas de los triángulos que forman las mallas 3D. Esto resulta especialmente útil para analizar cómo están construidos los objetos y comprobar la distribución de sus triángulos durante la generación de geometría.</p>
+<p>Al pulsar la tecla W, se alterna entre ambos estados y se cambia el modo de dibujo del Viewport.</p>
+<p><img src="./img/cap1.png" alt="wireframe1">
+<img src="./img/cap2.png" alt="wireframe2"></p>
+<h3 id="carga-de-modelos-3d-externos"><strong>Carga de modelos 3D externos</strong></h3>
+<p>Durante la práctica se importaron modelos externos en formatos GLB y OBJ para comprobar cómo trabaja Godot con distintos tipos de archivos 3D, y se han guardado dentro de la carpeta modelos3D y se han añadido como hijos de ObjetosP2 ( en godot ).</p>
+<p>En la práctica se importaron modelos en formatos GLB y OBJ. El formato GLB permite incluir geometría, materiales y texturas en un único archivo, mientras que el formato OBJ suele necesitar también un archivo .mtl para definir sus materiales.</p>
+<p><img src="./img/cap3.png" alt="obj-glb"></p>
+<h3 id="donut-y-cálculo-de-normales"><strong>Donut y cálculo de normales</strong></h3>
+<p>Se creó un objeto con forma de donut mediante una malla generada por código.
+Para ello se utilizan arrays de vértices y triángulos, a partir de los cuales se construye la geometría del objeto.</p>
+<p>Después se calculan las normales de cada vértice mediante calcNormales().
+Estas normales se obtienen a partir de las caras adyacentes y son necesarias para que la iluminación del objeto se calcule correctamente.</p>
+<p>Finalmente, con los vértices, triángulos y normales se crea una ArrayMesh y se aplica un material al donut.</p>
+<p><img src="img/cap4.png" alt="donut"></p>
+<h3 id="sombreado-por-píxel-y-por-vértice"><strong>Sombreado por píxel y por vértice</strong></h3>
+<p>Se compararon los dos tipos de sombreado disponibles en Godot utilizando el donut.</p>
+<p>Con el sombreado por píxel (<code>BaseMaterial3D.SHADING_MODE_PER_PIXEL</code>), la iluminación se calcula en cada píxel de la superficie, obteniendo un resultado más suave y realista.</p>
+<p><img src="img/cap6.png" alt="donut"></p>
+<p>En cambio, con el sombreado por vértice (<code>BaseMaterial3D.SHADING_MODE_PER_VERTEX</code>), la iluminación se calcula en los vértices y después se interpola sobre los triángulos, por lo que el resultado es menos preciso.</p>
+<p><img src="img/cap5.png" alt="donut"></p>
+<h3 id="cubo-de-8-y-24-vértices"><strong>Cubo de 8 y 24 vértices</strong></h3>
+<p>Se crearon dos cubos para comprobar cómo afecta la organización de los vértices al cálculo de las normales.</p>
+<p>El primer cubo utiliza 8 vértices, compartiendo cada vértice entre varias caras. Al calcular las normales como promedio de las caras adyacentes, estas apuntan en direcciones diagonales y la iluminación hace que el cubo parezca más suavizado de lo esperado.</p>
+<pre class="hljs"><code><div>
+var vertices := PackedVector3Array([
+		Vector3(-0.5, -0.5, -0.5), # 0
+		Vector3( 0.5, -0.5, -0.5), # 1
+		Vector3( 0.5,  0.5, -0.5), # 2
+		Vector3(-0.5,  0.5, -0.5), # 3
+		Vector3(-0.5, -0.5,  0.5), # 4
+		Vector3( 0.5, -0.5,  0.5), # 5
+		Vector3( 0.5,  0.5,  0.5), # 6
+		Vector3(-0.5,  0.5,  0.5)  # 7
+	])
+
+	var triangulos := PackedInt32Array([
+		0, 2, 1,  0, 3, 2,
+		1, 6, 5,  1, 2, 6,
+		5, 7, 4,  5, 6, 7,
+		4, 3, 0,  4, 7, 3,
+		3, 6, 2,  3, 7, 6,
+		4, 1, 5,  4, 0, 1
+	])
+
+	var normales := Utilidades.calcNormales(vertices, triangulos)
+
+</div></code></pre>
+<p>El segundo cubo utiliza 24 vértices, repitiendo los vértices de cada esquina para que cada cara tenga sus propios vértices y normales. De esta forma, las normales quedan perpendiculares a cada cara y las aristas se representan correctamente como aristas duras.</p>
+<pre class="hljs"><code><div>
+	var vertices := PackedVector3Array([
+		# Cara frontal
+		Vector3(-0.5, -0.5,  0.5),
+		Vector3( 0.5, -0.5,  0.5),
+		Vector3( 0.5,  0.5,  0.5),
+		Vector3(-0.5,  0.5,  0.5),
+
+		# Cara trasera
+		Vector3( 0.5, -0.5, -0.5),
+		Vector3(-0.5, -0.5, -0.5),
+		Vector3(-0.5,  0.5, -0.5),
+		Vector3( 0.5,  0.5, -0.5),
+
+		# Cara izquierda
+		Vector3(-0.5, -0.5, -0.5),
+		Vector3(-0.5, -0.5,  0.5),
+		Vector3(-0.5,  0.5,  0.5),
+		Vector3(-0.5,  0.5, -0.5),
+
+		# Cara derecha
+		Vector3( 0.5, -0.5,  0.5),
+		Vector3( 0.5, -0.5, -0.5),
+		Vector3( 0.5,  0.5, -0.5),
+		Vector3( 0.5,  0.5,  0.5),
+
+		# Cara superior
+		Vector3(-0.5,  0.5,  0.5),
+		Vector3( 0.5,  0.5,  0.5),
+		Vector3( 0.5,  0.5, -0.5),
+		Vector3(-0.5,  0.5, -0.5),
+
+		# Cara inferior
+		Vector3(-0.5, -0.5, -0.5),
+		Vector3( 0.5, -0.5, -0.5),
+		Vector3( 0.5, -0.5,  0.5),
+		Vector3(-0.5, -0.5,  0.5)
+	])
+
+	var triangulos := PackedInt32Array([
+		0, 1, 2,   0, 2, 3,
+		4, 5, 6,   4, 6, 7,
+		8, 9, 10,  8, 10, 11,
+		12, 13, 14, 12, 14, 15,
+		16, 17, 18, 16, 18, 19,
+		20, 21, 22, 20, 22, 23
+	])
+
+	var normales := Utilidades.calcNormales(vertices, triangulos)
+
+</div></code></pre>
+<p><img src="img/cap7.png" alt="cubos"></p>
+<h3 id="generación-de-una-malla-por-revolución"><strong>Generación de una malla por revolución</strong></h3>
+<p>Un objeto revolucion es un objeto 3D, hecho a partir de una base 2D y generada por el giro de un eje, en nuestro caso hemos girado en base al eje Y.</p>
+<p>Para generar nuestro objeto se definió primero un perfil 2D mediante varios puntos Vector2. Después se fueron creando copias de ese perfil alrededor del eje Y y se unieron los vértices generados mediante triángulos para formar la superficie 3D.</p>
+<p>Finalmente, se calcularon las normales de la malla y se creó la ArrayMesh del objeto.</p>
+<pre class="hljs"><code><div>
+extends Node
+
+	func generar_revolucion(
+		perfil: PackedVector2Array,
+		num_copias: int,
+		vertices: PackedVector3Array,
+		triangulos: PackedInt32Array
+	) -&gt; void:
+
+	var n_perfil := perfil.size()
+
+	# Generar las copias rotadas del perfil
+	for i in num_copias:
+		var angulo := 2.0 * PI * float(i) / float(num_copias)
+
+		var cos_a := cos(angulo)
+		var sin_a := sin(angulo)
+
+		for p in perfil:
+			var x := p.x
+			var y := p.y
+
+			vertices.append(
+				Vector3(
+					x * cos_a,
+					y,
+					x * sin_a
+				)
+			)
+
+	# Unir cada copia del perfil con la siguiente mediante triángulos
+	for i in num_copias:
+		var sig := (i + 1) % num_copias
+
+		for j in range(n_perfil - 1):
+			var a := i * n_perfil + j
+			var b := sig * n_perfil + j
+			var c := sig * n_perfil + j + 1
+			var d := i * n_perfil + j + 1
+
+			triangulos.append(a)
+			triangulos.append(c)
+			triangulos.append(b)
+
+			triangulos.append(a)
+			triangulos.append(d)
+			triangulos.append(c)
+
+
+</div></code></pre>
+<p><img src="img/cap8.png" alt="peon"></p>
+
+</body>
+</html>

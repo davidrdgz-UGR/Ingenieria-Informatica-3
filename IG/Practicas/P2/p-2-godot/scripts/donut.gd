@@ -30,8 +30,8 @@ func _ready() -> void:
 	mat.metallic = 0.3
 	mat.roughness = 0.2
 	
-	## mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_VERTEX
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+	##mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_VERTEX
 	
 	material_override = mat
 	
