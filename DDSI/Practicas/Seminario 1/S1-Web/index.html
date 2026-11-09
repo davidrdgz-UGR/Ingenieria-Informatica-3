@@ -6,13 +6,19 @@
   <title>Práctica DDSI</title>
   <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
   <header class="cabecera">
-    <h1>Práctica DDSI</h1>
+    
+    <h1>Seminario DDSI - Ceuta Feet</h1>
+    
     <nav class="selector">
       <label for="selector-tabla">Tabla:</label>
-      <select id="selector-tabla"></select>
+      <select id="selector-tabla">
+        <option hidden > Selecciona una tabla: </option>
+      </select>
     </nav>
+
   </header>
 
   <main class="contenido">
@@ -37,6 +43,7 @@
       <p id="mensaje" class="mensaje" role="status"></p>
     </section>
   </main>
+
 
   <script src="app.js"></script>
 </body>
