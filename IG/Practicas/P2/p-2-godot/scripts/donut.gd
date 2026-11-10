@@ -6,9 +6,9 @@ var mesh_normales : MeshInstance3D = null
 func _ready() -> void:
 	
 	## crear las tablas de vértices y triángulos de un Donut 
-	var vertices   := PackedVector3Array([])
-	var triangulos := PackedInt32Array([])
-	Utilidades.generarDonut( vertices, triangulos )
+	var vertices   := PackedVector3Array([])		## Crea un array que guarda las posiciones 3D del objeto (en vectores 3D)
+	var triangulos := PackedInt32Array([])			## Almacena los indices que forman cada triangulo ( como int )
+	Utilidades.generarDonut( vertices, triangulos )		## Con vertices y triangulos genera el donut
 		
 	var normales := Utilidades.calcNormales( vertices, triangulos )
 	assert( vertices.size() == normales.size() )
