@@ -139,6 +139,9 @@ btnGuardar.addEventListener("click", async () => {
 
 /* ---------- Cambiar de tabla ---------- */
 selector.addEventListener("change", () => {
+  
+  document.getElementsByClassName("tarjeta")[0].hidden = false;
+
   tablaActual = selector.value;
   activarEdicion(false);
 });
@@ -146,13 +149,17 @@ selector.addEventListener("change", () => {
 /* ---------- Arranque ---------- */
 async function iniciar() {
   await cargarTablas();
+  
   Object.keys(tablas).forEach((nombre) => {
     const opcion = document.createElement("option");
     opcion.value = opcion.textContent = nombre;
     selector.appendChild(opcion);
   });
-  tablaActual = Object.keys(tablas)[0];
-  pintarTabla();
+  
+  if( selector.getElementById() != "start" ){ 
+    tablaActual = Object.keys(tablas)[0];
+    pintarTabla();
+  }
 }
 
 iniciar();

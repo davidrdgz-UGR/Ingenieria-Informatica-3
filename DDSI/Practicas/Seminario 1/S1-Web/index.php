@@ -10,19 +10,19 @@
 <body>
   <header class="cabecera">
     
-    <h1>Seminario DDSI - Ceuta Feet</h1>
+    <h1>Seminario DDSI - <?php echo "Ceuta Feet"; ?></h1>
     
     <nav class="selector">
       <label for="selector-tabla">Tabla:</label>
       <select id="selector-tabla">
-        <option hidden > Selecciona una tabla: </option>
+        <option id="start" hidden > Selecciona una tabla: </option>
       </select>
     </nav>
 
   </header>
 
   <main class="contenido">
-    <section class="tarjeta">
+    <section class="tarjeta" hidden>
       <div class="barra-herramientas">
         <h2 id="titulo-tabla"></h2>
         <div class="acciones">
@@ -40,6 +40,7 @@
           <tbody></tbody>
         </table>
       </div>
+
       <p id="mensaje" class="mensaje" role="status"></p>
     </section>
   </main>
