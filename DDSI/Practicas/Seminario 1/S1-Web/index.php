@@ -10,13 +10,24 @@
 <body>
   <header class="cabecera">
     
-    <h1>Seminario DDSI - <?php echo "Ceuta Feet"; ?></h1>
+    <h1>Seminario 1 - DDSI</h1>
     
     <nav class="selector">
       <label for="selector-tabla">Tabla:</label>
-      <select id="selector-tabla">
-        <option id="start" hidden > Selecciona una tabla: </option>
+
+      <select id="selector-tabla" >
+        <option value="" selected disabled>
+          No hay tablas disponibles
+        </option>
+
+        <option value="" disabled hidden>
+          Selecciona una tabla :
+        </option>
       </select>
+
+      <button id="btn-crear" class="btn">
+        + Crear tabla
+      </button>
     </nav>
 
   </header>
