@@ -7,21 +7,18 @@ class Pedidos
 {
     private PDO $db;
 
-    public function __construct(PDO $conexion)
-    {
+    public function __construct(PDO $conexion){
         $this->db = $conexion;
     }
 
     // Obtener todos los productos y sus existencias.
-    public function obtenerStock(): array
-    {
+    public function obtenerStock(): array{
         $sql = "SELECT Cproducto, Cantidad FROM Stock";
         return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
 
     // Obtener los pedidos existentes.
-    public function obtenerPedidos(): array
-    {
+    public function obtenerPedidos(): array{
         $sql = "SELECT * FROM Pedido";
         return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
