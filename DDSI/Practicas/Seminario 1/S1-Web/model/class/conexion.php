@@ -33,7 +33,7 @@ class Conexion
 }
 
 /* PRUEBAS Y CONEXIÓN */
-
+/* 
 $conexion = new Conexion();
 $db = $conexion->obtenerConexion();
 
@@ -47,3 +47,9 @@ $stmt = $db->query($sql);
 $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 print_r($productos);
+
+// Liberar referencias y cerrar la conexión
+$stmt = null;
+$db = null;
+$conexion->cerrarConexion();
+ */
