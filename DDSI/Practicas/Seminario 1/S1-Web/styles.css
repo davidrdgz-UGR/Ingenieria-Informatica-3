@@ -218,3 +218,56 @@ table.editando th[contenteditable]:focus {
 [hidden] {
   display: none !important;
 }
+
+
+/* ---------- Formulario de alta ---------- */
+.acciones-tabla {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+.formulario {
+  margin-top: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  background: #f8f9fd;
+}
+
+/* Cada campo: nombre arriba, input debajo; los campos van en horizontal */
+.formulario-campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: .75rem 1rem;
+}
+
+
+.pista {
+  min-height: 1rem;
+  font-size: .8rem;
+  color: var(--texto-suave);
+}
+
+.campo { display: flex; flex-direction: column; gap: .35rem; }
+.campo label { font-size: .85rem; font-weight: 600; color: #312e81; }
+.campo input,
+.campo select {
+  padding: .5rem .65rem;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+}
+.campo input:focus-visible,
+.campo select:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 1px;
+}
+
+.formulario-botones {
+  display: flex;
+  justify-content: flex-end;
+  gap: .5rem;
+  margin-top: 1rem;
+}
