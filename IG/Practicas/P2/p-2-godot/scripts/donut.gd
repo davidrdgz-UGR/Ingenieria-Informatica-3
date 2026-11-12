@@ -36,9 +36,9 @@ func _ready() -> void:
 	material_override = mat
 	
 	## añadir normales para verlas
-	## mesh_normales = Algoritmos.generarSegmentosNormales( vertices, normales, 0.15, Color(1.0,1.0,1.0) )
-	## mesh_normales.visible = ver_normales
-	## add_child( mesh_normales )
+	mesh_normales = generarSegmentosNormales( vertices, normales, 0.15, Color(1.0,1.0,1.0) )
+	mesh_normales.visible = ver_normales
+	add_child( mesh_normales )
 	
 	
 	
