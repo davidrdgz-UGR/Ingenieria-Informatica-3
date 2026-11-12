@@ -4,7 +4,7 @@
    sustituirán por los datos reales de la BBDD en cargarTablas().
 ------------------------------------------------------------------- */
 let tablas = {
-  Stock: {
+  /* Stock: {
     columnas: ["Cproducto", "Nombre", "Cantidad"],
     filas: [
       [1, "Teclado", 50],
@@ -34,7 +34,7 @@ let tablas = {
       [2, "Luis"],
       [3, "Marta"],
     ],
-  },
+  }, */
 };
 
 /* ------------------------------------------------------------------
@@ -115,7 +115,7 @@ const formularios = {
       // Relación: el pedido al que pertenece el detalle
       { nombre: "Cpedido", tipo: "select", numero: true, requerido: true,
         placeholder: "Selecciona un pedido",
-        textoVacio: "No hay pedidos: crea uno primero",
+        textoVacio: "No hay pedidos",
         opciones: () =>
           tablas.Pedido.filas.map(([cpedido, ccliente]) => {
             const cliente = tablas.Clientes.filas.find(
@@ -240,6 +240,7 @@ const titulo = document.getElementById("titulo-tabla");
 const tabla = document.getElementById("tabla");
 const thead = tabla.querySelector("thead");
 const tbody = tabla.querySelector("tbody");
+const btnReiniciar = document.getElementById("btn-reiniciar");
 
 /* const btnEditar = document.getElementById("btn-editar"); */
 const btnGuardar = document.getElementById("btn-guardar");
@@ -252,11 +253,31 @@ const formulario = document.getElementById("formulario");
 const formularioCampos = document.getElementById("formulario-campos");
 const btnCancelar = document.getElementById("btn-cancelar");
 
-/* ---------- Conexión con la BBDD (pendiente) ---------- */
+
+
+/* ---------- Conexión con la BBDD ---------- */
 async function cargarTablas() {
-  // Cuando tengas el backend:
-  // const resp = await fetch("/api/tablas");
-  // tablas = await resp.json();
+  const respuesta = await fetch("api/tablas.php");
+
+  if (!respuesta.ok) {
+    throw new Error(`Error HTTP ${respuesta.status} al cargar las tablas`);
+  }
+
+  const datos = await respuesta.json();
+
+  // Comprobamos que la API devuelve la estructura esperada.
+  for (const nombre of ["Stock", "Clientes", "Pedido", "Detalle_Pedido"]) {
+    if (
+      !datos[nombre] ||
+      !Array.isArray(datos[nombre].columnas) ||
+      !Array.isArray(datos[nombre].filas)
+    ) {
+      throw new Error(`La tabla ${nombre} no tiene el formato esperado.`);
+    }
+  }
+
+  tablas = datos;
+
   return tablas;
 }
 
@@ -522,13 +543,93 @@ function rellenarSelector() {
   selectorTabla.value = tablaActual ?? "";
 }
 
+
+
+/* ---------- Reiniciar base de datos ---------- */
+
+const modalReiniciar = document.getElementById("modal-reiniciar");
+const btnCancelarReinicio = document.getElementById("btn-cancelar-reinicio");
+const btnConfirmarReinicio = document.getElementById("btn-confirmar-reinicio");
+
+// Abrir la ventana de confirmación.
+btnReiniciar.addEventListener("click", () => {
+  modalReiniciar.showModal();
+});
+
+// Cancelar el reinicio.
+btnCancelarReinicio.addEventListener("click", () => {
+  modalReiniciar.close();
+});
+
+// Confirmar el reinicio.
+btnConfirmarReinicio.addEventListener("click", async () => {
+  btnConfirmarReinicio.disabled = true;
+  btnCancelarReinicio.disabled = true;
+  btnConfirmarReinicio.textContent = "Reiniciando...";
+
+  try {
+    const respuesta = await fetch("./model/class/setupBD.php", {
+      method: "POST"
+    });
+
+    const resultado = await respuesta.json();
+
+    if (!respuesta.ok || !resultado.ok) {
+      throw new Error(
+        resultado.error || "No se pudo reiniciar la base de datos."
+      );
+    }
+
+    // Actualizar los datos de Oracle en la interfaz.
+    await cargarTablas();
+
+    tablaActual = null;
+    rellenarSelector();
+    mostrarOcultarTarjeta();
+    prepararFormulario();
+
+    modalReiniciar.close();
+
+    alert("Base de datos reiniciada correctamente.");
+
+  } catch (error) {
+    console.error("Error al reiniciar la BD:", error);
+    alert("Error: " + error.message);
+
+  } finally {
+    btnConfirmarReinicio.disabled = false;
+    btnCancelarReinicio.disabled = false;
+    btnConfirmarReinicio.textContent = "Sí, reiniciar";
+  }
+});
+
+
 /* ---------- Arranque ---------- */
 async function iniciar() {
-  await cargarTablas();
-  rellenarSelector();
-  mostrarOcultarTarjeta();
-  prepararFormulario();
-  pintarTabla();
+  try {
+    await cargarTablas();
+
+    rellenarSelector();
+    mostrarOcultarTarjeta();
+    prepararFormulario();
+    pintarTabla();
+
+  } catch (error) {
+    console.error("Error al cargar las tablas:", error);
+
+    selectorTabla.innerHTML = "";
+
+    const opcion = document.createElement("option");
+    opcion.textContent = "Error al cargar las tablas";
+    opcion.value = "";
+
+    selectorTabla.appendChild(opcion);
+    selectorTabla.disabled = true;
+
+    mostrarMensaje("No se pudieron cargar los datos de Oracle.");
+  }
 }
+
+iniciar();
 
 iniciar();

@@ -15,7 +15,10 @@ class Pedidos
     // Obtener todos los pedidos.
     public function obtenerPedidos(): array
     {
-        $sql = "SELECT * FROM Pedido ORDER BY Cpedido";
+        $sql = "SELECT Cpedido, Ccliente,
+                TO_CHAR(Fecha_pedido, 'YYYY-MM-DD') AS Fecha_pedido
+                FROM Pedido
+                ORDER BY Cpedido";
 
         return $this->db->query($sql)
                         ->fetchAll(PDO::FETCH_ASSOC);

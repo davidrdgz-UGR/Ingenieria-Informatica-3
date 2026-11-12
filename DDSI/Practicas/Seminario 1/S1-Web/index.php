@@ -14,7 +14,11 @@
     <div class="selector">
       <label for="selector-tabla">Tabla:</label>
       <select id="selector-tabla"></select>
+
+      <button id="btn-reiniciar" type="button" class="btn btn-peligro">Reiniciar BD</button>
     </div>
+
+    
   </header>
 
   <main class="contenido">
@@ -50,6 +54,36 @@
       <p id="mensaje" class="mensaje" role="status"></p>
     </section>
   </main>
+
+
+  
+<!-- Ventana de confirmación para reiniciar la BD -->
+<dialog id="modal-reiniciar" class="modal-reiniciar">
+  <div class="modal-icono">⚠</div>
+
+  <h2>¿Reiniciar base de datos?</h2>
+
+  <p>
+    Se eliminarán todos los datos actuales y se
+    restaurarán las tablas con sus datos iniciales.
+  </p>
+
+  <p class="modal-advertencia">
+    Esta acción no se puede deshacer.
+  </p>
+
+  <div class="modal-botones">
+    <button id="btn-cancelar-reinicio" type="button" class="btn">
+      Cancelar
+    </button>
+
+    <button id="btn-confirmar-reinicio" type="button"
+            class="btn btn-peligro">
+      Sí, reiniciar
+    </button>
+  </div>
+</dialog>
+
 
   <script src="app.js"></script>
 </body>

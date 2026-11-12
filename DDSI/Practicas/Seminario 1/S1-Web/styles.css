@@ -271,3 +271,79 @@ table.editando th[contenteditable]:focus {
   gap: .5rem;
   margin-top: 1rem;
 }
+
+/* ---------- Botón peligroso (rojo) ---------- */
+.btn-peligro {
+  background: #dc2626;
+  border-color: rgba(255, 255, 255, .4);
+  color: #fff;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, .35);
+  margin-left: 2rem;
+}
+.btn-peligro:hover {
+  background: #b91c1c;
+  border-color: rgba(255, 255, 255, .6);
+}
+
+/* Si no cabe en pantallas estrechas, baja de línea en vez de desbordar */
+.selector { flex-wrap: wrap; }
+
+
+
+/* ---------- Ventana modal de reinicio ---------- */
+
+.modal-reiniciar {
+  width: min(400px, calc(100% - 32px));
+  padding: 2rem;
+  border: none;
+  border-radius: 16px;
+  background: var(--superficie);
+  color: var(--texto);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .25);
+  text-align: center;
+}
+
+.modal-reiniciar::backdrop {
+  background: rgba(15, 23, 42, .65);
+  backdrop-filter: blur(3px);
+}
+
+.modal-icono {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 1rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fee2e2;
+  color: #dc2626;
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.modal-reiniciar h2 {
+  margin: 0 0 1rem;
+  font-size: 1.3rem;
+}
+
+.modal-reiniciar p {
+  color: var(--texto-suave);
+  line-height: 1.5;
+}
+
+.modal-reiniciar .modal-advertencia {
+  color: #dc2626;
+  font-weight: 600;
+  font-size: .9rem;
+}
+
+.modal-botones {
+  display: flex;
+  gap: .75rem;
+  margin-top: 1.5rem;
+}
+
+.modal-botones .btn {
+  flex: 1;
+}
