@@ -1,3 +1,4 @@
+
 <?php
 
 /* =============================================================
@@ -81,6 +82,8 @@ try {
         if ($tipo === 'anadir') {
             enteroPositivo($operacion['producto'] ?? null, 'Cproducto');
             enteroPositivo($operacion['cantidad'] ?? null, 'Cantidad');
+        } elseif ($tipo === 'deshacer') {
+            // Se volverá al SAVEPOINT anterior al último detalle.
         } elseif ($tipo === 'limpiar') {
             // Se desharán los detalles creados después del SAVEPOINT.
         } elseif ($tipo === 'finalizar' || $tipo === 'cancelar') {
@@ -115,6 +118,9 @@ try {
     $pasos = ['Cabecera creada', 'SAVEPOINT inicio_detalles'];
     $numeroDetalles = 0;
     $limpiezas = 0;
+    $deshechos = 0;
+    $numeroSavepoint = 0;
+    $savepoints = []; // Pila de puntos de guardado (uno después de cada detalle).
 
     foreach ($operaciones as $operacion) {
         switch ($operacion['tipo']) {
@@ -128,6 +134,29 @@ try {
 
                 $numeroDetalles++;
                 $pasos[] = "Producto $producto: $cantidad unidad(es) insertadas y descontadas del stock";
+
+                // Crear un SAVEPOINT real DESPUÉS de cada producto añadido.
+                // Numeración siempre creciente para no reutilizar nombres.
+                $numeroSavepoint++;
+                $nombreSavepoint = "sp_detalle_$numeroSavepoint";
+                $db->exec("SAVEPOINT $nombreSavepoint");
+                $savepoints[] = $nombreSavepoint;
+                $pasos[] = "SAVEPOINT $nombreSavepoint";
+                break;
+
+            case 'deshacer':
+                if (!$savepoints) {
+                    throw new InvalidArgumentException('No hay ningún producto que deshacer');
+                }
+
+                // Eliminamos el punto del último producto y volvemos al anterior.
+                // Si era el primero, regresamos a inicio_detalles.
+                array_pop($savepoints);
+                $destino = $savepoints ? end($savepoints) : 'inicio_detalles';
+                $db->exec("ROLLBACK TO SAVEPOINT $destino");
+                $numeroDetalles--;
+                $deshechos++;
+                $pasos[] = "ROLLBACK TO SAVEPOINT $destino: último detalle y su descuento de stock deshechos";
                 break;
 
             case 'limpiar':
@@ -135,6 +164,7 @@ try {
                 // pero NO deshace la cabecera insertada antes del SAVEPOINT.
                 $db->exec('ROLLBACK TO SAVEPOINT inicio_detalles');
                 $numeroDetalles = 0;
+                $savepoints = [];
                 $limpiezas++;
                 $pasos[] = 'ROLLBACK TO SAVEPOINT: detalles y stock restaurados';
                 break;
@@ -160,8 +190,8 @@ try {
                 $pasos[] = 'COMMIT';
 
                 $mensaje = "Pedido $codigo confirmado (COMMIT).";
-                if ($limpiezas > 0) {
-                    $mensaje .= " Ejecutados $limpiezas ROLLBACK TO SAVEPOINT.";
+                if ($limpiezas > 0 || $deshechos > 0) {
+                    $mensaje .= " Deshechos $deshechos producto(s) y limpiados $limpiezas grupo(s) de detalles con SAVEPOINT.";
                 }
 
                 echo json_encode([

@@ -126,10 +126,10 @@ const formularios = {
               (fila) => Number(fila[0]) === Number(ccliente)
             );
             return {
-              valor: cpedido, // lo que se envía: solo el código
+              valor: cpedido,
               texto: cliente
-                ? `Pedido ${cpedido} (${cliente[1]})` // lo que se ve
-                : `Pedido ${cpedido} (cliente ${ccliente})`, // cliente no encontrado
+                ? `Pedido ${cpedido} (${cliente[1]})`
+                : `Pedido ${cpedido} (cliente ${ccliente})`,
             };
           }) },
 
@@ -169,11 +169,13 @@ const formularios = {
           Number(fila[0]) === Number(valores.Cpedido) &&
           Number(fila[1]) === Number(valores.Cproducto)
       );
+
       const repetidoPendiente = pedidoPendiente !== null &&
         Number(pedidoPendiente.Cpedido) === Number(valores.Cpedido) &&
         pedidoPendiente.detalles.some(
           (detalle) => detalle.producto === Number(valores.Cproducto)
         );
+
       if (repetido || repetidoPendiente) {
         return "Ese producto ya está en el pedido.";
       }
@@ -212,8 +214,7 @@ function filaStock(cproducto) {
   return tablas.Stock.filas.find((fila) => Number(fila[0]) === Number(cproducto));
 }
 
-/* Unidades disponibles de un producto. OJO: usa la posición 2 de la fila
-   de Stock (Cproducto, Producto/Nombre, Cantidad). */
+/* Unidades disponibles de un producto */
 function stockDe(cproducto) {
   const fila = filaStock(cproducto);
   return fila ? Number(fila[2]) : 0;
@@ -222,14 +223,13 @@ function stockDe(cproducto) {
 /* ------------------------------------------------------------------
    RELACIONES VISUALES
    Columnas que guardan un código pero se muestran con el nombre entre
-   paréntesis, p. ej. "1 (Ana)". Solo cambia lo que se ve: los datos
-   guardados siguen siendo únicamente el código.
+   paréntesis, p. ej. "1 (Ana)".
 ------------------------------------------------------------------- */
 function conNombre(nombreTabla, codigo) {
   const fila = tablas[nombreTabla].filas.find(
     (f) => Number(f[0]) === Number(codigo)
   );
-  return fila ? `${codigo} (${fila[1]})` : codigo; // fila[1] = nombre
+  return fila ? `${codigo} (${fila[1]})` : codigo;
 }
 
 const relaciones = {
@@ -239,7 +239,6 @@ const relaciones = {
   Detalle_Pedido: {
     Cproducto: (codigo) => conNombre("Stock", codigo),
 
-    // El pedido no tiene nombre propio: se muestra el del cliente que lo hizo
     Cpedido: (codigo) => {
       const pedido = tablas.Pedido.filas.find(
         (f) => Number(f[0]) === Number(codigo)
@@ -254,7 +253,7 @@ const relaciones = {
 
 let tablaActual = null;
 
-/* Pedido nuevo pendiente de confirmar: no cambia Oracle hasta finalizar. */
+/* Pedido nuevo pendiente de confirmar */
 let pedidoPendiente = null;
 let modoEdicion = false;
 
@@ -281,6 +280,7 @@ const btnCancelar = document.getElementById("btn-cancelar");
    Se añaden usando los estilos ya existentes, sin tocar HTML ni CSS.
    Los formularios de Pedido y Detalle_Pedido NO se modifican.
 ------------------------------------------------------------------- */
+
 const panelPedido = document.createElement("div");
 panelPedido.className = "formulario";
 panelPedido.hidden = true;
@@ -298,45 +298,110 @@ function crearBotonPedido(texto, clase, accion) {
   return boton;
 }
 
-const btnLimpiarDetalles = crearBotonPedido("Limpiar detalles", "", limpiarDetalles);
-const btnCancelarPedido = crearBotonPedido("Cancelar pedido", "btn-peligro", () => procesarPedido("cancelar"));
-const btnFinalizarPedido = crearBotonPedido("Finalizar pedido", "btn-principal", () => procesarPedido("finalizar"));
+const btnDeshacerUltimo = crearBotonPedido(
+  "Deshacer último producto", "", deshacerUltimoProducto
+);
 
-accionesPedido.append(btnLimpiarDetalles, btnCancelarPedido, btnFinalizarPedido);
+const btnLimpiarDetalles = crearBotonPedido(
+  "Limpiar detalles", "", limpiarDetalles
+);
+
+const btnCancelarPedido = crearBotonPedido(
+  "Cancelar pedido", "btn-peligro", () => procesarPedido("cancelar")
+);
+
+const btnFinalizarPedido = crearBotonPedido(
+  "Finalizar pedido", "btn-principal", () => procesarPedido("finalizar")
+);
+
+accionesPedido.append(
+  btnDeshacerUltimo,
+  btnLimpiarDetalles,
+  btnCancelarPedido,
+  btnFinalizarPedido
+);
+
 panelPedido.append(resumenPedido, accionesPedido);
 tarjeta.querySelector(".acciones-tabla").after(panelPedido);
 
 function actualizarPanelPedido() {
   const activo = pedidoPendiente !== null;
-  panelPedido.hidden = !activo || !["Pedido", "Detalle_Pedido"].includes(tablaActual);
+
+  panelPedido.hidden =
+    !activo || !["Pedido", "Detalle_Pedido"].includes(tablaActual);
 
   if (activo) {
     const cliente = tablas.Clientes?.filas.find(
       (fila) => Number(fila[0]) === pedidoPendiente.Ccliente
     );
+
     const cantidadProductos = pedidoPendiente.detalles.length;
+
     resumenPedido.textContent =
-      `Pedido ${pedidoPendiente.Cpedido} de ${cliente ? cliente[1] : pedidoPendiente.Ccliente} ` +
-      `— ${cantidadProductos} producto(s) provisional(es). Sin confirmar en Oracle.`;
+      `Pedido ${pedidoPendiente.Cpedido} de ` +
+      `${cliente ? cliente[1] : pedidoPendiente.Ccliente} ` +
+      `— ${cantidadProductos} producto(s) provisional(es). ` +
+      `Sin confirmar en Oracle.`;
   }
 
-  btnLimpiarDetalles.disabled = !activo || pedidoPendiente.detalles.length === 0 || operacionPendiente;
+  btnDeshacerUltimo.disabled =
+    !activo || pedidoPendiente.detalles.length === 0 || operacionPendiente;
+
+  btnLimpiarDetalles.disabled =
+    !activo || pedidoPendiente.detalles.length === 0 || operacionPendiente;
+
   btnCancelarPedido.disabled = !activo || operacionPendiente;
   btnFinalizarPedido.disabled = !activo || operacionPendiente;
-  btnAnadir.disabled = operacionPendiente || (activo && tablaActual === "Pedido");
+
+  btnAnadir.disabled =
+    operacionPendiente || (activo && tablaActual === "Pedido");
+}
+
+function deshacerUltimoProducto() {
+  if (!pedidoPendiente ||
+      operacionPendiente ||
+      !pedidoPendiente.detalles.length) {
+    return;
+  }
+
+  // PHP ejecutará ROLLBACK TO SAVEPOINT al procesar la transacción.
+  const ultimo = pedidoPendiente.detalles.pop();
+
+  pedidoPendiente.operaciones.push({
+    tipo: "deshacer"
+  });
+
+  cerrarFormulario();
+  pintarTabla();
+  actualizarPanelPedido();
+
+  mostrarMensaje(
+    `Producto ${ultimo.producto} retirado del borrador. ` +
+    "Oracle ejecutará ROLLBACK TO SAVEPOINT al finalizar."
+  );
 }
 
 function limpiarDetalles() {
-  if (!pedidoPendiente || operacionPendiente || !pedidoPendiente.detalles.length) return;
+  if (!pedidoPendiente ||
+      operacionPendiente ||
+      !pedidoPendiente.detalles.length) {
+    return;
+  }
 
-  // PHP ejecutará realmente ROLLBACK TO SAVEPOINT, en la misma transacción.
-  pedidoPendiente.operaciones.push({ tipo: "limpiar" });
+  pedidoPendiente.operaciones.push({
+    tipo: "limpiar"
+  });
+
   pedidoPendiente.detalles = [];
 
   cerrarFormulario();
   pintarTabla();
   actualizarPanelPedido();
-  mostrarMensaje("Detalles retirados del borrador. El SAVEPOINT se ejecutará al finalizar.");
+
+  mostrarMensaje(
+    "Detalles retirados del borrador. " +
+    "El SAVEPOINT se ejecutará al finalizar."
+  );
 }
 
 async function procesarPedido(tipo) {
@@ -348,80 +413,113 @@ async function procesarPedido(tipo) {
   try {
     const respuesta = await fetch("api/pedidos.php", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json"
+      },
       body: JSON.stringify({
         Cpedido: pedidoPendiente.Cpedido,
         Ccliente: pedidoPendiente.Ccliente,
         Fecha_pedido: pedidoPendiente.Fecha_pedido,
-        operaciones: [...pedidoPendiente.operaciones, { tipo }]
+        operaciones: [
+          ...pedidoPendiente.operaciones,
+          { tipo }
+        ]
       })
     });
 
     const texto = await respuesta.text();
     let resultado;
+
     try {
       resultado = JSON.parse(texto);
     } catch {
-      throw new Error(`Respuesta no válida del servidor (HTTP ${respuesta.status}).`);
-    }
-    if (!respuesta.ok || !resultado.ok) {
-      throw new Error(resultado.error || `Error HTTP ${respuesta.status}`);
+      throw new Error(
+        `Respuesta no válida del servidor (HTTP ${respuesta.status}).`
+      );
     }
 
-    // La transacción ha finalizado en el servidor (COMMIT o ROLLBACK).
+    if (!respuesta.ok || !resultado.ok) {
+      throw new Error(
+        resultado.error || `Error HTTP ${respuesta.status}`
+      );
+    }
+
     pedidoPendiente = null;
     cerrarFormulario();
     filaEditando = null;
+
     mostrarMensaje(resultado.mensaje);
 
     try {
       await cargarTablas();
       pintarTabla();
     } catch (error) {
-      mostrarMensaje(`${resultado.mensaje} No se pudieron refrescar las tablas: ${error.message}`);
+      mostrarMensaje(
+        `${resultado.mensaje} No se pudieron refrescar las tablas: ` +
+        error.message
+      );
     }
+
   } catch (error) {
     mostrarMensaje(`Error en la transacción: ${error.message}`);
+
   } finally {
     operacionPendiente = false;
     actualizarPanelPedido();
   }
 }
 
-
-
 /* ---------- Conexión con la BBDD ---------- */
 async function cargarTablas() {
   const respuesta = await fetch("api/tablas.php");
 
   if (!respuesta.ok) {
-    throw new Error(`Error HTTP ${respuesta.status} al cargar las tablas`);
+    throw new Error(
+      `Error HTTP ${respuesta.status} al cargar las tablas`
+    );
   }
 
   const datos = await respuesta.json();
 
-  // Comprobamos que la API devuelve la estructura esperada.
-  for (const nombre of ["Stock", "Clientes", "Pedido", "Detalle_Pedido"]) {
+  for (const nombre of [
+    "Stock",
+    "Clientes",
+    "Pedido",
+    "Detalle_Pedido"
+  ]) {
     if (
       !datos[nombre] ||
       !Array.isArray(datos[nombre].columnas) ||
       !Array.isArray(datos[nombre].filas)
     ) {
-      throw new Error(`La tabla ${nombre} no tiene el formato esperado.`);
+      throw new Error(
+        `La tabla ${nombre} no tiene el formato esperado.`
+      );
     }
   }
 
   tablas = datos;
-
   return tablas;
 }
 
 /* ---------- Escritura de registros en Oracle ---------- */
-async function enviarOperacion(accion, nombre, fila = null, clave = null) {
+async function enviarOperacion(
+  accion,
+  nombre,
+  fila = null,
+  clave = null
+) {
   const respuesta = await fetch("api/filas.php", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ accion, tabla: nombre, fila, clave })
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      accion,
+      tabla: nombre,
+      fila,
+      clave
+    })
   });
 
   const texto = await respuesta.text();
@@ -431,12 +529,15 @@ async function enviarOperacion(accion, nombre, fila = null, clave = null) {
     resultado = JSON.parse(texto);
   } catch {
     throw new Error(
-      `El servidor no devolvió JSON válido (HTTP ${respuesta.status}).`
+      `El servidor no devolvió JSON válido ` +
+      `(HTTP ${respuesta.status}).`
     );
   }
 
   if (!respuesta.ok || !resultado.ok) {
-    throw new Error(resultado.error || `Error HTTP ${respuesta.status}`);
+    throw new Error(
+      resultado.error || `Error HTTP ${respuesta.status}`
+    );
   }
 
   return resultado;
@@ -444,10 +545,12 @@ async function enviarOperacion(accion, nombre, fila = null, clave = null) {
 
 /* Las claves no se modifican: el detalle utiliza clave compuesta. */
 function claveDe(nombre, fila) {
-  return nombre === "Detalle_Pedido" ? [fila[0], fila[1]] : [fila[0]];
+  return nombre === "Detalle_Pedido"
+    ? [fila[0], fila[1]]
+    : [fila[0]];
 }
 
-/* Campos que permitimos editar, evitando claves primarias/foráneas sensibles. */
+/* Campos que permitimos editar */
 const columnasEditables = {
   Stock: [1, 2],
   Clientes: [1],
@@ -458,9 +561,8 @@ const columnasEditables = {
 let filaEditando = null;
 let operacionPendiente = false;
 
+/* ---------- Botones con iconos ---------- */
 function botonAccion(texto, clase, accion) {
-
-  // Iconos SVG.
   const iconos = {
     Editar: `
       <svg viewBox="0 0 24 24" width="18" height="18"
@@ -498,17 +600,11 @@ function botonAccion(texto, clase, accion) {
   };
 
   const boton = document.createElement("button");
-
   boton.type = "button";
   boton.className = `btn btn-icono ${clase}`;
-
-  // Mostrar el nombre al pasar el ratón.
   boton.title = texto;
-
-  // Accesibilidad: nombre del botón para lectores de pantalla.
   boton.setAttribute("aria-label", texto);
 
-  // Insertar el icono correspondiente.
   if (iconos[texto]) {
     boton.innerHTML = iconos[texto];
   } else {
@@ -516,7 +612,6 @@ function botonAccion(texto, clase, accion) {
   }
 
   boton.addEventListener("click", accion);
-
   return boton;
 }
 
@@ -524,11 +619,14 @@ function botonAccion(texto, clase, accion) {
 function pintarTabla() {
   if (!tablaActual || !tablas[tablaActual]) return;
 
-  const { columnas, filas: filasGuardadas } = tablas[tablaActual];
+  const {
+    columnas,
+    filas: filasGuardadas
+  } = tablas[tablaActual];
 
-  // Los registros provisionales aparecen en las tablas habituales,
-  // sin insertarlos todavía en la base de datos.
   const filas = [...filasGuardadas];
+
+  // Mostrar la cabecera provisional en la tabla Pedido.
   if (pedidoPendiente && tablaActual === "Pedido") {
     filas.push([
       pedidoPendiente.Cpedido,
@@ -536,9 +634,15 @@ function pintarTabla() {
       pedidoPendiente.Fecha_pedido
     ]);
   }
+
+  // Mostrar detalles provisionales en la tabla Detalle_Pedido.
   if (pedidoPendiente && tablaActual === "Detalle_Pedido") {
     pedidoPendiente.detalles.forEach((detalle) => {
-      filas.push([pedidoPendiente.Cpedido, detalle.producto, detalle.cantidad]);
+      filas.push([
+        pedidoPendiente.Cpedido,
+        detalle.producto,
+        detalle.cantidad
+      ]);
     });
   }
 
@@ -571,6 +675,7 @@ function pintarTabla() {
 
   filas.forEach((fila, indice) => {
     const tr = document.createElement("tr");
+
     const provisional = indice >= filasGuardadas.length;
     const editarEsta = !provisional && filaEditando === indice;
     const controles = {};
@@ -578,7 +683,10 @@ function pintarTabla() {
     fila.forEach((valor, i) => {
       const td = document.createElement("td");
 
-      if (editarEsta && columnasEditables[tablaActual].includes(i)) {
+      if (
+        editarEsta &&
+        columnasEditables[tablaActual].includes(i)
+      ) {
         const campo = formularios[tablaActual].campos[i];
 
         const input = document.createElement(
@@ -595,22 +703,32 @@ function pintarTabla() {
         } else {
           input.type = campo.tipo;
 
-          if (campo.min !== undefined) input.min = campo.min;
+          if (campo.min !== undefined) {
+            input.min = campo.min;
+          }
+
           if (campo.maxlength !== undefined) {
             input.maxLength = campo.maxlength;
           }
-          if (campo.tipo === "number") input.step = "1";
+
+          if (campo.tipo === "number") {
+            input.step = "1";
+          }
         }
 
         input.value = valor;
         input.required = true;
         input.className = "celda-edicion";
+
         td.appendChild(input);
         controles[i] = input;
 
       } else {
         const formato = relaciones[tablaActual]?.[columnas[i]];
-        td.textContent = formato ? formato(valor) : String(valor ?? "");
+
+        td.textContent = formato
+          ? formato(valor)
+          : String(valor ?? "");
       }
 
       tr.appendChild(td);
@@ -619,19 +737,18 @@ function pintarTabla() {
     const acciones = document.createElement("td");
     acciones.className = "acciones-fila";
 
-    
     if (provisional) {
       acciones.textContent = "Provisional";
+
     } else if (editarEsta) {
       acciones.append(
-        // Guardar cambios
+
         botonAccion(
           "Guardar",
           "btn-principal",
           () => guardarEdicion(indice, controles)
         ),
 
-        // Cancelar edición
         botonAccion(
           "Cancelar",
           "",
@@ -641,7 +758,6 @@ function pintarTabla() {
           }
         ),
 
-        // Eliminar registro (solo durante la edición)
         botonAccion(
           "Eliminar",
           "btn-peligro",
@@ -650,7 +766,6 @@ function pintarTabla() {
       );
 
     } else {
-      // En modo normal solo mostramos Editar
       acciones.append(
         botonAccion(
           "Editar",
@@ -664,7 +779,6 @@ function pintarTabla() {
       );
     }
 
-
     tr.appendChild(acciones);
     tbody.appendChild(tr);
   });
@@ -674,6 +788,7 @@ function mostrarMensaje(texto) {
   mensaje.textContent = texto;
 }
 
+/* ---------- Guardar edición ---------- */
 async function guardarEdicion(indice, controles) {
   if (operacionPendiente) return;
 
@@ -716,7 +831,7 @@ async function guardarEdicion(indice, controles) {
   }
 }
 
-/* Modal de confirmación de borrado; no utiliza confirm() del navegador. */
+/* ---------- Modal de confirmación de borrado ---------- */
 const modalEliminar = document.createElement("dialog");
 modalEliminar.className = "modal-reiniciar";
 
@@ -795,6 +910,7 @@ modalEliminar
       filaEditando = null;
       modalEliminar.close();
       pintarTabla();
+
       mostrarMensaje("Registro eliminado correctamente.");
 
     } catch (error) {
@@ -812,7 +928,7 @@ function pintarFormulario() {
   const config = formularios[tablaActual];
   formularioCampos.innerHTML = "";
 
-  const dinamicos = []; // campos con límite máximo o texto de ayuda
+  const dinamicos = [];
 
   config.campos.forEach((campo) => {
     const div = document.createElement("div");
@@ -823,13 +939,17 @@ function pintarFormulario() {
     label.textContent = campo.nombre;
 
     let input;
+
     if (campo.tipo === "select") {
-      // Desplegable cuyas opciones salen de otra tabla (relación)
       input = document.createElement("select");
       const opciones = campo.opciones();
 
-      // El pedido nuevo se puede elegir en el formulario existente de detalles.
-      if (tablaActual === "Detalle_Pedido" && campo.nombre === "Cpedido" && pedidoPendiente) {
+      // Añadir al desplegable el pedido provisional.
+      if (
+        tablaActual === "Detalle_Pedido" &&
+        campo.nombre === "Cpedido" &&
+        pedidoPendiente
+      ) {
         opciones.push({
           valor: pedidoPendiente.Cpedido,
           texto: `Pedido ${pedidoPendiente.Cpedido} (provisional)`
@@ -838,9 +958,11 @@ function pintarFormulario() {
 
       const vacia = document.createElement("option");
       vacia.value = "";
+
       vacia.textContent = opciones.length
         ? campo.placeholder ?? "Selecciona una opción"
         : campo.textoVacio ?? "No hay opciones";
+
       vacia.disabled = true;
       vacia.selected = true;
       input.appendChild(vacia);
@@ -852,16 +974,33 @@ function pintarFormulario() {
         input.appendChild(opcion);
       });
 
-      if (tablaActual === "Detalle_Pedido" && campo.nombre === "Cpedido" && pedidoPendiente) {
+      if (
+        tablaActual === "Detalle_Pedido" &&
+        campo.nombre === "Cpedido" &&
+        pedidoPendiente
+      ) {
         input.value = String(pedidoPendiente.Cpedido);
       }
+
     } else {
       input = document.createElement("input");
       input.type = campo.tipo;
-      if (campo.min !== undefined) input.min = campo.min;
-      if (campo.tipo === "number") input.step = 1;
-      if (campo.maxlength !== undefined) input.maxLength = campo.maxlength;
-      if (campo.valorInicial) input.value = campo.valorInicial();
+
+      if (campo.min !== undefined) {
+        input.min = campo.min;
+      }
+
+      if (campo.tipo === "number") {
+        input.step = 1;
+      }
+
+      if (campo.maxlength !== undefined) {
+        input.maxLength = campo.maxlength;
+      }
+
+      if (campo.valorInicial) {
+        input.value = campo.valorInicial();
+      }
     }
 
     input.id = `campo-${campo.nombre}`;
@@ -874,29 +1013,45 @@ function pintarFormulario() {
       const pista = document.createElement("small");
       pista.className = "pista";
       div.appendChild(pista);
-      dinamicos.push({ campo, input, pista });
+
+      dinamicos.push({
+        campo,
+        input,
+        pista
+      });
     }
 
     formularioCampos.appendChild(div);
   });
 
-  // Campos que dependen de otros (límite máximo y texto de ayuda)
+  // Campos con límite máximo o texto de ayuda dinámico.
   if (dinamicos.length) {
     const refrescar = () => {
       const valores = Object.fromEntries(new FormData(formulario));
+
       dinamicos.forEach(({ campo, input, pista }) => {
         if (campo.max) {
           const max = campo.max(valores);
-          if (max === null) input.removeAttribute("max");
-          else input.max = max;
+
+          if (max === null) {
+            input.removeAttribute("max");
+          } else {
+            input.max = max;
+          }
         }
-        pista.textContent = campo.pista ? campo.pista(valores) : "";
+
+        pista.textContent =
+          campo.pista ? campo.pista(valores) : "";
       });
     };
-    formularioCampos.querySelectorAll("input, select").forEach((el) => {
-      el.addEventListener("input", refrescar);
-      el.addEventListener("change", refrescar);
-    });
+
+    formularioCampos
+      .querySelectorAll("input, select")
+      .forEach((el) => {
+        el.addEventListener("input", refrescar);
+        el.addEventListener("change", refrescar);
+      });
+
     refrescar();
   }
 }
@@ -915,19 +1070,26 @@ function cerrarFormulario() {
 /* El botón "Añadir fila" solo aparece si la tabla tiene formulario */
 function prepararFormulario() {
   cerrarFormulario();
-  btnAnadir.hidden = !tablaActual || !formularios[tablaActual];
+
+  btnAnadir.hidden =
+    !tablaActual || !formularios[tablaActual];
+
   actualizarPanelPedido();
 }
 
 btnAnadir.addEventListener("click", () => {
-  if (formulario.hidden) abrirFormulario();
-  else cerrarFormulario();
+  if (formulario.hidden) {
+    abrirFormulario();
+  } else {
+    cerrarFormulario();
+  }
 });
 
 btnCancelar.addEventListener("click", cerrarFormulario);
 
+/* ---------- Crear registros ---------- */
 formulario.addEventListener("submit", async (e) => {
-  e.preventDefault(); // evita que la página se recargue
+  e.preventDefault();
 
   if (operacionPendiente) return;
 
@@ -935,15 +1097,18 @@ formulario.addEventListener("submit", async (e) => {
   const valores = Object.fromEntries(new FormData(formulario));
 
   const error = config.validar?.(valores);
+
   if (error) {
     mostrarMensaje(error);
     return;
   }
 
-  // Cabecera del pedido: mantenerla en borrador hasta COMMIT o ROLLBACK.
+  // Crear cabecera provisional de Pedido.
   if (tablaActual === "Pedido") {
     if (pedidoPendiente) {
-      mostrarMensaje("Finaliza o cancela el pedido provisional antes de crear otro.");
+      mostrarMensaje(
+        "Finaliza o cancela el pedido provisional antes de crear otro."
+      );
       return;
     }
 
@@ -958,19 +1123,26 @@ formulario.addEventListener("submit", async (e) => {
     cerrarFormulario();
     pintarTabla();
     actualizarPanelPedido();
-    mostrarMensaje("Pedido provisional creado. Ve a Detalle_Pedido para añadir productos, o finalízalo vacío.");
+
+    mostrarMensaje(
+      "Pedido provisional creado. Ve a Detalle_Pedido para añadir " +
+      "productos, o finalízalo vacío."
+    );
     return;
   }
 
-  // Detalle_Pedido conserva sus tres campos originales.
-  // Si pertenece al pedido provisional, se registra en el borrador.
-  if (tablaActual === "Detalle_Pedido" && pedidoPendiente &&
-      Number(valores.Cpedido) === pedidoPendiente.Cpedido) {
+  // Añadir producto al pedido provisional.
+  if (
+    tablaActual === "Detalle_Pedido" &&
+    pedidoPendiente &&
+    Number(valores.Cpedido) === pedidoPendiente.Cpedido
+  ) {
     pedidoPendiente.operaciones.push({
       tipo: "anadir",
       producto: Number(valores.Cproducto),
       cantidad: Number(valores.Cantidad)
     });
+
     pedidoPendiente.detalles.push({
       producto: Number(valores.Cproducto),
       cantidad: Number(valores.Cantidad)
@@ -979,20 +1151,26 @@ formulario.addEventListener("submit", async (e) => {
     cerrarFormulario();
     pintarTabla();
     actualizarPanelPedido();
-    mostrarMensaje("Detalle añadido al borrador. Se guardará en Oracle al finalizar el pedido.");
+
+    mostrarMensaje(
+      "Detalle añadido al borrador. " +
+      "Se guardará en Oracle al finalizar el pedido."
+    );
     return;
   }
 
-  // Fila en el mismo orden que las columnas; los number se convierten a número
+  // Resto de altas: guardar directamente en Oracle.
   const fila = config.campos.map((campo) => {
     const valor = valores[campo.nombre];
-    return campo.tipo === "number" || campo.numero ? Number(valor) : valor.trim();
+
+    return campo.tipo === "number" || campo.numero
+      ? Number(valor)
+      : valor.trim();
   });
 
   operacionPendiente = true;
 
   try {
-    // Pedido crea la cabecera; Detalle_Pedido tiene su propio formulario.
     await enviarOperacion("crear", tablaActual, fila);
     await cargarTablas();
 
@@ -1006,16 +1184,15 @@ formulario.addEventListener("submit", async (e) => {
   } finally {
     operacionPendiente = false;
   }
-});
+})
 
-/* La tarjeta (y con ella la tabla) solo se ve si hay una tabla seleccionada */
+/* La tarjeta solo se ve si hay una tabla seleccionada */
 function mostrarOcultarTarjeta() {
   tarjeta.hidden = !tablaActual;
 }
 
 /* ---------- Cambiar de tabla ---------- */
 selectorTabla.addEventListener("change", () => {
-
   tablaActual = selectorTabla.value || null;
 
   mostrarOcultarTarjeta();
@@ -1034,11 +1211,15 @@ function rellenarSelector() {
   opcionInicial.value = "";
   opcionInicial.disabled = true;
   opcionInicial.hidden = true;
+
   selectorTabla.appendChild(opcionInicial);
 
   Object.keys(tablas).forEach((nombre) => {
     const opcion = document.createElement("option");
-    opcion.value = opcion.textContent = nombre;
+
+    opcion.value = nombre;
+    opcion.textContent = nombre;
+
     selectorTabla.appendChild(opcion);
   });
 
@@ -1046,41 +1227,45 @@ function rellenarSelector() {
 }
 
 /* ---------- Reiniciar base de datos ---------- */
+const modalReiniciar =
+  document.getElementById("modal-reiniciar");
 
-const modalReiniciar = document.getElementById("modal-reiniciar");
-const btnCancelarReinicio = document.getElementById("btn-cancelar-reinicio");
-const btnConfirmarReinicio = document.getElementById("btn-confirmar-reinicio");
+const btnCancelarReinicio =
+  document.getElementById("btn-cancelar-reinicio");
 
-// Abrir la ventana de confirmación.
+const btnConfirmarReinicio =
+  document.getElementById("btn-confirmar-reinicio");
+
 btnReiniciar.addEventListener("click", () => {
   modalReiniciar.showModal();
 });
 
-// Cancelar el reinicio.
 btnCancelarReinicio.addEventListener("click", () => {
   modalReiniciar.close();
 });
 
-// Confirmar el reinicio.
 btnConfirmarReinicio.addEventListener("click", async () => {
   btnConfirmarReinicio.disabled = true;
   btnCancelarReinicio.disabled = true;
   btnConfirmarReinicio.textContent = "Reiniciando...";
 
   try {
-    const respuesta = await fetch("./model/class/setupBD.php", {
-      method: "POST"
-    });
+    const respuesta = await fetch(
+      "./model/class/setupBD.php",
+      {
+        method: "POST"
+      }
+    );
 
     const resultado = await respuesta.json();
 
     if (!respuesta.ok || !resultado.ok) {
       throw new Error(
-        resultado.error || "No se pudo reiniciar la base de datos."
+        resultado.error ||
+        "No se pudo reiniciar la base de datos."
       );
     }
 
-    // Actualizar los datos de Oracle en la interfaz.
     await cargarTablas();
 
     tablaActual = null;
@@ -1128,7 +1313,9 @@ async function iniciar() {
     selectorTabla.appendChild(opcion);
     selectorTabla.disabled = true;
 
-    mostrarMensaje("No se pudieron cargar los datos de Oracle.");
+    mostrarMensaje(
+      "No se pudieron cargar los datos de Oracle."
+    );
   }
 }
 
