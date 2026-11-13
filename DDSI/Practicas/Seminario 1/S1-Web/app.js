@@ -1,3 +1,4 @@
+
 /* ------------------------------------------------------------------
    TABLAS FIJAS DEL ENUNCIADO
    La estructura (columnas) no cambia. Las filas son de ejemplo y se
@@ -85,6 +86,7 @@ const formularios = {
     campos: [
       { nombre: "Cpedido", tipo: "number", min: 1, requerido: true,
         valorInicial: () => siguienteCodigo("Pedido") },
+
       // Relación: Ccliente se elige entre los clientes que existen
       { nombre: "Ccliente", tipo: "select", numero: true, requerido: true,
         placeholder: "Selecciona un cliente",
@@ -94,6 +96,7 @@ const formularios = {
             valor: id,
             texto: `${id} - ${nombre}`,
           })) },
+
       { nombre: "Fecha_pedido", tipo: "date", requerido: true,
         valorInicial: hoy },
     ],
@@ -102,6 +105,7 @@ const formularios = {
         (fila) => Number(fila[0]) === Number(valores.Cpedido)
       );
       if (existe) return "Ya existe un pedido con ese Cpedido.";
+
       const clienteOk = tablas.Clientes.filas.some(
         (fila) => Number(fila[0]) === Number(valores.Ccliente)
       );
@@ -128,6 +132,7 @@ const formularios = {
                 : `Pedido ${cpedido} (cliente ${ccliente})`, // cliente no encontrado
             };
           }) },
+
       // Relación: solo productos con stock, mostrando lo disponible
       { nombre: "Cproducto", tipo: "select", numero: true, requerido: true,
         placeholder: "Selecciona un producto",
@@ -139,6 +144,7 @@ const formularios = {
               valor: fila[0],
               texto: `${fila[0]} - ${fila[1]} (${fila[2]} disp.)`,
             })) },
+
       // La cantidad no puede superar el stock del producto elegido
       { nombre: "Cantidad", tipo: "number", min: 1, requerido: true,
         max: (valores) => (valores.Cproducto ? stockDe(valores.Cproducto) : null),
@@ -151,7 +157,9 @@ const formularios = {
       );
       if (!pedidoOk) return "El pedido seleccionado no existe.";
 
-      if (!filaStock(valores.Cproducto)) return "El producto seleccionado no existe.";
+      if (!filaStock(valores.Cproducto)) {
+        return "El producto seleccionado no existe.";
+      }
 
       const repetido = tablas.Detalle_Pedido.filas.some(
         (fila) =>
@@ -162,11 +170,13 @@ const formularios = {
 
       const cantidad = Number(valores.Cantidad);
       const disponible = stockDe(valores.Cproducto);
+
       if (cantidad > disponible) {
         return `No hay stock suficiente: quedan ${disponible} unidades.`;
       }
       return null;
     },
+
     // Simula lo que hará el servidor: descontar el stock.
     // Con el backend se sustituirá por recargar las tablas desde la BBDD.
     despuesDeGuardar(fila) {
@@ -218,6 +228,7 @@ const relaciones = {
   },
   Detalle_Pedido: {
     Cproducto: (codigo) => conNombre("Stock", codigo),
+
     // El pedido no tiene nombre propio: se muestra el del cliente que lo hizo
     Cpedido: (codigo) => {
       const pedido = tablas.Pedido.filas.find(
@@ -232,7 +243,6 @@ const relaciones = {
 };
 
 let tablaActual = null;
-let modoEdicion = false;
 
 /* ---------- Referencias al DOM ---------- */
 const selectorTabla = document.getElementById("selector-tabla");
@@ -242,8 +252,6 @@ const thead = tabla.querySelector("thead");
 const tbody = tabla.querySelector("tbody");
 const btnReiniciar = document.getElementById("btn-reiniciar");
 
-/* const btnEditar = document.getElementById("btn-editar"); */
-const btnGuardar = document.getElementById("btn-guardar");
 const mensaje = document.getElementById("mensaje");
 const tarjeta = document.querySelector(".tarjeta");
 
@@ -252,8 +260,6 @@ const btnAnadir = document.getElementById("btn-anadir");
 const formulario = document.getElementById("formulario");
 const formularioCampos = document.getElementById("formulario-campos");
 const btnCancelar = document.getElementById("btn-cancelar");
-
-
 
 /* ---------- Conexión con la BBDD ---------- */
 async function cargarTablas() {
@@ -281,104 +287,372 @@ async function cargarTablas() {
   return tablas;
 }
 
-async function guardarTabla(nombre, datos) {
-  // Cuando tengas el backend:
-  // await fetch(`/api/tablas/${nombre}`, {
-  //   method: "PUT",
-  //   headers: { "Content-Type": "application/json" },
-  //   body: JSON.stringify(datos),
-  // });
-  console.log("Guardar", nombre, datos);
+/* ---------- Escritura de registros en Oracle ---------- */
+async function enviarOperacion(accion, nombre, fila = null, clave = null) {
+  const respuesta = await fetch("api/filas.php", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ accion, tabla: nombre, fila, clave })
+  });
+
+  const texto = await respuesta.text();
+  let resultado;
+
+  try {
+    resultado = JSON.parse(texto);
+  } catch {
+    throw new Error(
+      `El servidor no devolvió JSON válido (HTTP ${respuesta.status}).`
+    );
+  }
+
+  if (!respuesta.ok || !resultado.ok) {
+    throw new Error(resultado.error || `Error HTTP ${respuesta.status}`);
+  }
+
+  return resultado;
 }
 
-/* Guarda UNA fila nueva (la usa el formulario de alta) */
-async function guardarFila(nombre, fila) {
-  // Cuando tengas el backend:
-  // const resp = await fetch(`/api/tablas/${nombre}/filas`, {
-  //   method: "POST",
-  //   headers: { "Content-Type": "application/json" },
-  //   body: JSON.stringify(fila),
-  // });
-  // if (!resp.ok) throw new Error("No se pudo guardar");
-  console.log("Guardar fila en", nombre, fila);
+/* Las claves no se modifican: el detalle utiliza clave compuesta. */
+function claveDe(nombre, fila) {
+  return nombre === "Detalle_Pedido" ? [fila[0], fila[1]] : [fila[0]];
 }
 
-/* ---------- Pintar la tabla ---------- */
+/* Campos que permitimos editar, evitando claves primarias/foráneas sensibles. */
+const columnasEditables = {
+  Stock: [1, 2],
+  Clientes: [1],
+  Pedido: [1, 2],
+  Detalle_Pedido: [2]
+};
+
+let filaEditando = null;
+let operacionPendiente = false;
+
+/* ---------- Botones con iconos ---------- */
+function botonAccion(texto, clase, accion) {
+
+  const iconos = {
+    Editar: `
+      <svg viewBox="0 0 24 24" width="18" height="18"
+           fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 20h9"/>
+        <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+      </svg>`,
+
+    Eliminar: `
+      <svg viewBox="0 0 24 24" width="18" height="18"
+           fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 6h18"/>
+        <path d="M8 6V4h8v2"/>
+        <path d="M5 6l1 14h12l1-14"/>
+        <path d="M10 10v7"/>
+        <path d="M14 10v7"/>
+      </svg>`,
+
+    Guardar: `
+      <svg viewBox="0 0 24 24" width="18" height="18"
+           fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="m5 12 4 4L19 6"/>
+      </svg>`,
+
+    Cancelar: `
+      <svg viewBox="0 0 24 24" width="18" height="18"
+           fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 6 6 18"/>
+        <path d="m6 6 12 12"/>
+      </svg>`
+  };
+
+  const boton = document.createElement("button");
+
+  boton.type = "button";
+  boton.className = `btn btn-icono ${clase}`;
+  boton.title = texto;
+  boton.setAttribute("aria-label", texto);
+
+  if (iconos[texto]) {
+    boton.innerHTML = iconos[texto];
+  } else {
+    boton.textContent = texto;
+  }
+
+  boton.addEventListener("click", accion);
+
+  return boton;
+}
+
+/* ---------- Pintar la tabla y sus botones ---------- */
 function pintarTabla() {
-  if (!tablaActual) return; // sin tabla seleccionada no hay nada que pintar
+  if (!tablaActual || !tablas[tablaActual]) return;
 
   const { columnas, filas } = tablas[tablaActual];
   titulo.textContent = tablaActual;
+  thead.replaceChildren();
+  tbody.replaceChildren();
 
-  // Cabecera: los nombres de columna son fijos, nunca editables
-  thead.innerHTML = "";
-  const filaCab = document.createElement("tr");
-  columnas.forEach((col) => {
+  const cabecera = document.createElement("tr");
+
+  [...columnas, "Acciones"].forEach((col) => {
     const th = document.createElement("th");
     th.textContent = col;
-    filaCab.appendChild(th);
+    cabecera.appendChild(th);
   });
-  thead.appendChild(filaCab);
 
-  // Cuerpo
-  tbody.innerHTML = "";
-  if (filas.length === 0) {
+  thead.appendChild(cabecera);
+
+  if (!filas.length) {
     const tr = document.createElement("tr");
     const td = document.createElement("td");
-    td.colSpan = columnas.length;
-    td.textContent = "Esta tabla no tiene filas.";
+
+    td.colSpan = columnas.length + 1;
     td.className = "vacia";
+    td.textContent = "Esta tabla no tiene filas.";
+
     tr.appendChild(td);
     tbody.appendChild(tr);
-  } else {
-    filas.forEach((fila) => {
-      const tr = document.createElement("tr");
-      fila.forEach((valor, i) => {
-        const td = document.createElement("td");
-        // Con nombre entre paréntesis, salvo en modo edición (ahí, el código puro)
-        const formato = relaciones[tablaActual]?.[columnas[i]];
-        td.textContent = formato && !modoEdicion ? formato(valor) : valor;
-        td.contentEditable = modoEdicion ? "true" : "false";
-        tr.appendChild(td);
-      });
-      tbody.appendChild(tr);
-    });
+    return;
   }
 
-  tabla.classList.toggle("editando", modoEdicion);
-  // Sin filas no hay nada que editar
- /*  btnEditar.disabled = filas.length === 0; */
-}
+  filas.forEach((fila, indice) => {
+    const tr = document.createElement("tr");
+    const editarEsta = filaEditando === indice;
+    const controles = {};
 
-/* Lee las celdas de la pantalla y las guarda en "tablas" */
-function leerFilasDelDOM() {
-  const filas = [...tbody.querySelectorAll("tr")].map((tr) =>
-    [...tr.querySelectorAll("td")].map((td) => td.textContent.trim())
-  );
-  tablas[tablaActual].filas = filas;
+    fila.forEach((valor, i) => {
+      const td = document.createElement("td");
+
+      if (editarEsta && columnasEditables[tablaActual].includes(i)) {
+        const campo = formularios[tablaActual].campos[i];
+
+        const input = document.createElement(
+          campo.tipo === "select" ? "select" : "input"
+        );
+
+        if (campo.tipo === "select") {
+          campo.opciones().forEach(({ valor: id, texto }) => {
+            const opt = document.createElement("option");
+            opt.value = id;
+            opt.textContent = texto;
+            input.appendChild(opt);
+          });
+        } else {
+          input.type = campo.tipo;
+
+          if (campo.min !== undefined) input.min = campo.min;
+          if (campo.maxlength !== undefined) {
+            input.maxLength = campo.maxlength;
+          }
+
+          if (campo.tipo === "number") input.step = "1";
+        }
+
+        input.value = valor;
+        input.required = true;
+        input.className = "celda-edicion";
+        td.appendChild(input);
+        controles[i] = input;
+
+      } else {
+        const formato = relaciones[tablaActual]?.[columnas[i]];
+        td.textContent = formato ? formato(valor) : String(valor ?? "");
+      }
+
+      tr.appendChild(td);
+    });
+
+    const acciones = document.createElement("td");
+    acciones.className = "acciones-fila";
+
+    if (editarEsta) {
+      acciones.append(
+        // Guardar cambios
+        botonAccion(
+          "Guardar",
+          "btn-principal",
+          () => guardarEdicion(indice, controles)
+        ),
+
+        // Cancelar edición
+        botonAccion(
+          "Cancelar",
+          "",
+          () => {
+            filaEditando = null;
+            pintarTabla();
+          }
+        ),
+
+        // Eliminar registro (solo durante la edición)
+        botonAccion(
+          "Eliminar",
+          "btn-peligro",
+          () => pedirEliminacion(indice)
+        )
+      );
+
+    } else {
+      // En modo normal solo mostramos Editar
+      acciones.append(
+        botonAccion(
+          "Editar",
+          "",
+          () => {
+            filaEditando = indice;
+            cerrarFormulario();
+            pintarTabla();
+          }
+        )
+      );
+    }
+
+    tr.appendChild(acciones);
+    tbody.appendChild(tr);
+  });
 }
 
 function mostrarMensaje(texto) {
   mensaje.textContent = texto;
 }
 
-/* ---------- Modo edición (solo el contenido de las celdas) ---------- */
-function activarEdicion(activo) {
-  modoEdicion = activo;
-  /* btnEditar.textContent = activo ? "Cancelar edición" : "Editar contenido"; */
-  btnGuardar.hidden = !activo;
-  pintarTabla();
-  mostrarMensaje(activo ? "Modo edición: haz clic en una celda para cambiarla." : "");
+/* ---------- Guardar cambios de una fila ---------- */
+async function guardarEdicion(indice, controles) {
+  if (operacionPendiente) return;
+
+  const nombre = tablaActual;
+  const anterior = tablas[nombre].filas[indice];
+  const nueva = [...anterior];
+
+  for (const [i, control] of Object.entries(controles)) {
+    if (!control.reportValidity()) return;
+
+    const campo = formularios[nombre].campos[Number(i)];
+
+    nueva[Number(i)] =
+      campo.tipo === "number" || campo.numero
+        ? Number(control.value)
+        : control.value.trim();
+  }
+
+  operacionPendiente = true;
+
+  try {
+    await enviarOperacion(
+      "editar",
+      nombre,
+      nueva,
+      claveDe(nombre, anterior)
+    );
+
+    await cargarTablas();
+
+    filaEditando = null;
+    pintarTabla();
+    mostrarMensaje("Registro actualizado correctamente.");
+
+  } catch (error) {
+    mostrarMensaje(`Error: ${error.message}`);
+
+  } finally {
+    operacionPendiente = false;
+  }
 }
 
-/* btnEditar.addEventListener("click", () => activarEdicion(!modoEdicion)); */
+/* ---------- Confirmación para eliminar registros ---------- */
 
-btnGuardar.addEventListener("click", async () => {
-  leerFilasDelDOM();
-  await guardarTabla(tablaActual, tablas[tablaActual]);
-  activarEdicion(false);
-  mostrarMensaje("Cambios guardados.");
+const modalEliminar = document.createElement("dialog");
+modalEliminar.className = "modal-reiniciar";
+
+modalEliminar.innerHTML = `
+  <h2>¿Eliminar registro?</h2>
+  <p id="texto-eliminar">El registro se eliminará definitivamente.</p>
+  <p class="modal-advertencia">Esta acción no se puede deshacer.</p>
+  <div class="modal-botones">
+    <button type="button" class="btn" id="cancelar-eliminar">
+      Cancelar
+    </button>
+    <button type="button" class="btn btn-peligro" id="confirmar-eliminar">
+      Sí, eliminar
+    </button>
+  </div>
+`;
+
+document.body.appendChild(modalEliminar);
+
+let indiceEliminar = null;
+
+modalEliminar
+  .querySelector("#cancelar-eliminar")
+  .addEventListener("click", () => {
+    modalEliminar.close();
+  });
+
+modalEliminar.addEventListener("close", () => {
+  indiceEliminar = null;
 });
+
+function pedirEliminacion(indice) {
+  indiceEliminar = {
+    nombre: tablaActual,
+    fila: [...tablas[tablaActual].filas[indice]]
+  };
+
+  const id = claveDe(
+    indiceEliminar.nombre,
+    indiceEliminar.fila
+  ).join(" / ");
+
+  modalEliminar.querySelector("#texto-eliminar").textContent =
+    `Se eliminará el registro ${id} de ${indiceEliminar.nombre}.` +
+    (
+      indiceEliminar.nombre === "Pedido"
+        ? " También se borrarán sus detalles y se recuperará su stock."
+        : ""
+    );
+
+  modalEliminar.showModal();
+}
+
+modalEliminar
+  .querySelector("#confirmar-eliminar")
+  .addEventListener("click", async (e) => {
+    if (!indiceEliminar || operacionPendiente) return;
+
+    operacionPendiente = true;
+
+    const boton = e.currentTarget;
+    boton.disabled = true;
+
+    try {
+      const { nombre, fila } = indiceEliminar;
+
+      await enviarOperacion(
+        "eliminar",
+        nombre,
+        null,
+        claveDe(nombre, fila)
+      );
+
+      await cargarTablas();
+
+      filaEditando = null;
+      modalEliminar.close();
+      pintarTabla();
+      mostrarMensaje("Registro eliminado correctamente.");
+
+    } catch (error) {
+      modalEliminar.close();
+      mostrarMensaje(`Error al eliminar: ${error.message}`);
+
+    } finally {
+      boton.disabled = false;
+      operacionPendiente = false;
+    }
+  });
 
 /* ---------- Formulario de alta ---------- */
 function pintarFormulario() {
@@ -396,6 +670,7 @@ function pintarFormulario() {
     label.textContent = campo.nombre;
 
     let input;
+
     if (campo.tipo === "select") {
       // Desplegable cuyas opciones salen de otra tabla (relación)
       input = document.createElement("select");
@@ -406,6 +681,7 @@ function pintarFormulario() {
       vacia.textContent = opciones.length
         ? campo.placeholder ?? "Selecciona una opción"
         : campo.textoVacio ?? "No hay opciones";
+
       vacia.disabled = true;
       vacia.selected = true;
       input.appendChild(vacia);
@@ -416,9 +692,11 @@ function pintarFormulario() {
         opcion.textContent = texto;
         input.appendChild(opcion);
       });
+
     } else {
       input = document.createElement("input");
       input.type = campo.tipo;
+
       if (campo.min !== undefined) input.min = campo.min;
       if (campo.tipo === "number") input.step = 1;
       if (campo.maxlength !== undefined) input.maxLength = campo.maxlength;
@@ -445,19 +723,24 @@ function pintarFormulario() {
   if (dinamicos.length) {
     const refrescar = () => {
       const valores = Object.fromEntries(new FormData(formulario));
+
       dinamicos.forEach(({ campo, input, pista }) => {
         if (campo.max) {
           const max = campo.max(valores);
+
           if (max === null) input.removeAttribute("max");
           else input.max = max;
         }
+
         pista.textContent = campo.pista ? campo.pista(valores) : "";
       });
     };
+
     formularioCampos.querySelectorAll("input, select").forEach((el) => {
       el.addEventListener("input", refrescar);
       el.addEventListener("change", refrescar);
     });
+
     refrescar();
   }
 }
@@ -486,12 +769,17 @@ btnAnadir.addEventListener("click", () => {
 
 btnCancelar.addEventListener("click", cerrarFormulario);
 
+/* ---------- Guardar una nueva fila ---------- */
 formulario.addEventListener("submit", async (e) => {
   e.preventDefault(); // evita que la página se recargue
+
+  if (operacionPendiente) return;
+
   const config = formularios[tablaActual];
   const valores = Object.fromEntries(new FormData(formulario));
 
   const error = config.validar?.(valores);
+
   if (error) {
     mostrarMensaje(error);
     return;
@@ -500,16 +788,30 @@ formulario.addEventListener("submit", async (e) => {
   // Fila en el mismo orden que las columnas; los number se convierten a número
   const fila = config.campos.map((campo) => {
     const valor = valores[campo.nombre];
-    return campo.tipo === "number" || campo.numero ? Number(valor) : valor.trim();
+
+    return campo.tipo === "number" || campo.numero
+      ? Number(valor)
+      : valor.trim();
   });
 
-  await guardarFila(tablaActual, fila);
-  tablas[tablaActual].filas.push(fila);
-  config.despuesDeGuardar?.(fila); // p. ej. descontar el stock
+  operacionPendiente = true;
 
-  cerrarFormulario();
-  pintarTabla();
-  mostrarMensaje("Fila añadida correctamente.");
+  try {
+    // Pedido crea su cabecera.
+    // Detalle_Pedido mantiene su formulario independiente.
+    await enviarOperacion("crear", tablaActual, fila);
+    await cargarTablas();
+
+    cerrarFormulario();
+    pintarTabla();
+    mostrarMensaje("Fila añadida correctamente.");
+
+  } catch (error) {
+    mostrarMensaje(`Error al añadir: ${error.message}`);
+
+  } finally {
+    operacionPendiente = false;
+  }
 });
 
 /* La tarjeta (y con ella la tabla) solo se ve si hay una tabla seleccionada */
@@ -520,9 +822,12 @@ function mostrarOcultarTarjeta() {
 /* ---------- Cambiar de tabla ---------- */
 selectorTabla.addEventListener("change", () => {
   tablaActual = selectorTabla.value || null;
+
   mostrarOcultarTarjeta();
   prepararFormulario();
-  activarEdicion(false);
+
+  filaEditando = null;
+  pintarTabla();
 });
 
 function rellenarSelector() {
@@ -540,10 +845,9 @@ function rellenarSelector() {
     opcion.value = opcion.textContent = nombre;
     selectorTabla.appendChild(opcion);
   });
+
   selectorTabla.value = tablaActual ?? "";
 }
-
-
 
 /* ---------- Reiniciar base de datos ---------- */
 
@@ -584,6 +888,8 @@ btnConfirmarReinicio.addEventListener("click", async () => {
     await cargarTablas();
 
     tablaActual = null;
+    filaEditando = null;
+
     rellenarSelector();
     mostrarOcultarTarjeta();
     prepararFormulario();
@@ -602,7 +908,6 @@ btnConfirmarReinicio.addEventListener("click", async () => {
     btnConfirmarReinicio.textContent = "Sí, reiniciar";
   }
 });
-
 
 /* ---------- Arranque ---------- */
 async function iniciar() {
@@ -629,7 +934,5 @@ async function iniciar() {
     mostrarMensaje("No se pudieron cargar los datos de Oracle.");
   }
 }
-
-iniciar();
 
 iniciar();

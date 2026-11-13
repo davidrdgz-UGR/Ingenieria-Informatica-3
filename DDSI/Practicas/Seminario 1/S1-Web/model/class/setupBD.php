@@ -8,12 +8,27 @@ require_once __DIR__ . "/Conexion.php";
    Seminario 1 - DDSI
    ============================================ */
 
+// Responder a JavaScript en formato JSON.
+header("Content-Type: application/json; charset=utf-8");
+
+// Solo permitir reiniciar la BD mediante POST.
+if ($_SERVER["REQUEST_METHOD"] !== "POST") {
+    http_response_code(405);
+
+    echo json_encode([
+        "ok" => false,
+        "error" => "Método no permitido."
+    ]);
+
+    exit;
+}
+
 try {
     $conexion = new Conexion();
     $db = $conexion->obtenerConexion();
 
-    echo "<pre>";
-    echo "CONFIGURACIÓN DE LA BASE DE DATOS\n\n";
+    // echo "<pre>";
+    // echo "CONFIGURACIÓN DE LA BASE DE DATOS\n\n";
 
     // 1. ELIMINAR TABLAS EXISTENTES
     // Primero eliminamos las tablas dependientes.
@@ -37,13 +52,13 @@ try {
         if ((int) $stmt->fetchColumn() > 0) {
             $db->exec("DROP TABLE $nombre");
 
-            echo "Tabla $nombre eliminada.\n";
+            // echo "Tabla $nombre eliminada.\n";
         }
     }
 
     // 2. CREAR LAS TABLAS
 
-    echo "\nCREANDO TABLAS...\n";
+    // echo "\nCREANDO TABLAS...\n";
 
     $tablas = [
 
@@ -101,12 +116,13 @@ try {
 
     foreach ($tablas as $nombre => $sql) {
         $db->exec($sql);
-        echo "Tabla $nombre creada.\n";
+
+        // echo "Tabla $nombre creada.\n";
     }
 
     // 3. INSERTAR LOS 10 PRODUCTOS INICIALES
 
-    echo "\nINSERTANDO PRODUCTOS...\n";
+    // echo "\nINSERTANDO PRODUCTOS...\n";
 
     $productos = [
         [1, "Teclado", 50],
@@ -132,7 +148,7 @@ try {
 
     // 4. INSERTAR CLIENTES INICIALES
 
-    echo "\nINSERTANDO CLIENTES...\n";
+    // echo "\nINSERTANDO CLIENTES...\n";
 
     $clientes = [
         [1, "Ana"],
@@ -154,7 +170,9 @@ try {
 
     // 5. COMPROBAR RESULTADO
 
-    echo "\nRESUMEN DE LA BASE DE DATOS\n";
+    // echo "\nRESUMEN DE LA BASE DE DATOS\n";
+
+    $resumen = [];
 
     foreach (array_keys($tablas) as $nombre) {
 
@@ -162,22 +180,44 @@ try {
             "SELECT COUNT(*) FROM $nombre"
         )->fetchColumn();
 
-        echo "$nombre: $total registros.\n";
+        $resumen[$nombre] = (int) $total;
+
+        // echo "$nombre: $total registros.\n";
     }
 
-    echo "\nBase de datos preparada correctamente.\n";
-    echo "</pre>";
+    // echo "\nBase de datos preparada correctamente.\n";
+    // echo "</pre>";
 
     $stmt = null;
     $db = null;
     $conexion->cerrarConexion();
 
+    // 6. RESPUESTA JSON PARA JAVASCRIPT
+
+    echo json_encode([
+        "ok" => true,
+        "mensaje" => "Base de datos reiniciada correctamente.",
+        "tablas" => $resumen
+    ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+
 } catch (Throwable $e) {
 
+    /*
     echo "<pre>";
     echo "ERROR: " .
         htmlspecialchars($e->getMessage()) .
         "</pre>";
-}
+    */
 
+    // Registrar el error real en el servidor.
+    error_log("Error al reiniciar BD: " . $e->getMessage());
+
+    http_response_code(500);
+
+    // Devolver el error en formato JSON.
+    echo json_encode([
+        "ok" => false,
+        "error" => "No se pudo reiniciar la base de datos."
+    ], JSON_UNESCAPED_UNICODE);
+}
 ?>
