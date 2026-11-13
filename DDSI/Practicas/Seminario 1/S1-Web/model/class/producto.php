@@ -13,8 +13,7 @@ class Producto
     }
 
     // Obtener todos los productos.
-    public function obtenerProductos(): array
-    {
+    public function obtenerProductos(): array{
         $sql = "SELECT Cproducto, Nombre, Cantidad
                 FROM Stock ORDER BY Cproducto";
 
@@ -116,11 +115,7 @@ class Producto
     }
 
     // Modificar nombre y cantidad de un producto.
-    public function actualizarProducto(
-        int $codigo,
-        string $nombre,
-        int $cantidad
-    ): bool {
+    public function actualizarProducto( int $codigo, string $nombre, int $cantidad): bool {
 
         if ($codigo <= 0 ||
             trim($nombre) === "" ||
@@ -147,8 +142,7 @@ class Producto
     }
 
     // Eliminar un producto.
-    public function eliminarProducto(int $codigo): bool
-    {
+    public function eliminarProducto(int $codigo): bool{
         if ($codigo <= 0) {
             throw new InvalidArgumentException(
                 "Código no válido"
@@ -164,6 +158,7 @@ class Producto
         return $stmt->rowCount() > 0;
     }
 }
+
 
 
 /* ============================================

@@ -50,7 +50,7 @@ Finalmente configuramos el ODBC entrando con Windows + R en `odbcad32` para pode
 
 Este archivo se encarga de preparar y reiniciar nuestra base de datos Oracle. 
 
-Para ello, utiliza la conexión definida en Conexion.php, elimina las tablas existentes, las vuelve a crear e introduce unos datos iniciales para realizar pruebas. En PHP tenemos varias formas de conectarnos, hemos usado PDO que es la más recomendable para una BD de Oracle y para nuestro caso.
+Para ello, utiliza la conexión definida en Conexion.php, elimina las tablas existentes, las vuelve a crear e introduce unos datos iniciales para realizar pruebas. En PHP tenemos varias formas de conectarnos, hemos utilizado PDO mediante el controlador ODBC para conectarnos a Oracle
 
 La conexión en php se suele crear como un objeto, en el que tenemos los métodos obtenerConexion() y cerrarConexion().
 
@@ -75,6 +75,9 @@ public function __construct(){
 ```
 
 Una vez ya en setup.php, iniciamos la conexión importando el archivo de conexion.php y creando un objeto y usando sus métodos. Además este archivo solo permite peticiones POST desde el Frontend. Para borrar los datos creamos un array con el orden de borrado por si acaso, creamos la consulta y hacemos la solicitud.
+
+
+Además añadimos un trigger para cuando se elimine algo de un pedido, el stock vuelva a su sitio automáticamente.
 
 ```php
 
@@ -101,6 +104,17 @@ foreach ($ordenBorrado as $nombre) {
         // echo "Tabla $nombre eliminada.\n";
     }
 }
+
+$db->exec("
+    CREATE OR REPLACE TRIGGER trg_detalle_restaurar_stock
+    AFTER DELETE ON Detalle_Pedido
+    FOR EACH ROW
+    BEGIN
+        UPDATE Stock
+        SET Cantidad = Cantidad + :OLD.Cantidad
+        WHERE Cproducto = :OLD.Cproducto;
+    END;
+");
 
 ```
 
@@ -132,4 +146,285 @@ Finalmente cerramos la conexion con la base de datos, y enviamos los datos que n
     }
 
     $db->exec("COMMIT");
+```
+
+
+
+### Producto.php
+
+Este archivo contiene la clase Producto, encargada de realizar las operaciones sobre la tabla Stock de nuestra base de datos: consultar, insertar, modificar y eliminar productos.
+
+En este archivo tenemos varias funciones, las  cuales la mayoria constan con una consulta a la base de datos
+
+Normalmente cuando realizamos una consulta a la BBDD, la metemos en una variable/objeto, la preparamos y la ejecutamos, el lenguaje manda la consulta y la BBDD devuelve ciertas cosas dependiendo de lo realizado, pues estos datos también los podemos recoger ( depende del servicio nos lo devuelve en un formato u otro ), en nuestro caso en PHP con fetch()/fetchAll()/rowCount() entre otros, además este objeto devuelto tiene sus propias funciones con las que obtenemos información.
+
+`obtenerProductos()` -> Esta funcion nos devuelve directamente todos los productos como una matriz. \
+`obtenerProducto(int $codigo)` -> Esta igual que la anterior, pero busca por código. \
+`existeProducto(int $codigo)` -> Función de comprobación, básicamente esta de apoyo para evitar errores. \
+`comprobarStock(int $codigo, int $cantidad)` -> Igual que la anterior, de apoyo. 
+
+Estas funciones ya si necesitan más parametros, que reciben de JS, y crean la consulta en base a estos parametros. \
+`insertarProducto( ... )` -> Le llegan los datos de creacion (id,Stock,Nombre)
+`actualizarStock( ... )` -> Permite modificar únicamente la cantidad de un producto. Es una función auxiliar disponible, aunque actualmente el control del stock de los pedidos se realiza desde detallesPedido.php
+`actualizarProducto( ... )` -> Esta de aqui se usa para actualizar un producto manualmente.
+`eliminarProducto(int $codigo)` -> Se mete su id, y simplemente hace un DELETE de la fila correspondiente.
+
+```php
+
+public function obtenerProductos(): array{
+        $sql = "SELECT Cproducto, Nombre, Cantidad
+                FROM Stock ORDER BY Cproducto";
+
+        $stmt = $this->db->query($sql);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+
+public function actualizarProducto( int $codigo, string $nombre, int $cantidad ): bool {
+
+        if ($codigo <= 0 ||
+            trim($nombre) === "" ||
+            mb_strlen($nombre) > 50 ||
+            $cantidad < 0) {
+
+            throw new InvalidArgumentException(
+                "Datos del producto no válidos"
+            );
+        }
+
+        $sql = "UPDATE Stock
+                SET Nombre = ?, Cantidad = ?
+                WHERE Cproducto = ?";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            trim($nombre),
+            $cantidad,
+            $codigo
+        ]);
+
+        return $stmt->rowCount() > 0;
+    }
+
+    public function eliminarProducto(int $codigo): bool{
+        if ($codigo <= 0) {
+            throw new InvalidArgumentException(
+                "Código no válido"
+            );
+        }
+
+        $sql = "DELETE FROM Stock
+                WHERE Cproducto = ?";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$codigo]);
+
+        return $stmt->rowCount() > 0;
+    }
+
+```
+
+
+
+### Cliente.php
+
+Este archivo contiene la clase Clientes, encargada de gestionar los registros de la tabla Clientes de Oracle, permitiendo consultar, insertar, modificar y eliminar clientes.
+
+Realmente no tiene mucho misterio frente al archivo anterior, las clases funcionan casi igual, dependiendo de la funcionalidad se crea una consulta, se prepara, se ejecuta y si es necesario recogemos el resultado en el formato conveniente, a partir de aqui entraremos menos en detalle en los códigos hasta los puntos importantes.
+
+`obtenerClientes()` \
+`obtenerCliente(int $codigo)` \
+`existeCliente(int $codigo)` \
+`insertarCliente(int $codigo, string $nombre)` \
+`actualizarCliente(int $codigo, string $nombre)` \
+`eliminarCliente(int $codigo)` 
+
+```php
+
+public function obtenerClientes(): array{
+    $sql = "SELECT ID_Cliente, Nombre
+            FROM Clientes ORDER BY ID_Cliente";
+
+    return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+}
+
+public function eliminarCliente(int $codigo): bool{
+    if ($codigo <= 0) {
+        throw new InvalidArgumentException(
+            "Código no válido"
+        );
+    }
+
+    $sql = "DELETE FROM Clientes WHERE ID_Cliente = ?";
+
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute([$codigo]);
+
+    return $stmt->rowCount() > 0;
+}
+
+```
+
+
+### pedido.php y detallePedido.php
+
+En estos códigos están las funcionalidades de crear un pedido y añadirle sus detalles en otro apartado como los tipos de productos añadidos al pedido.
+
+Pedido: almacena la información general del pedido (código, cliente y fecha).
+Detalle_Pedido: almacena los productos y las cantidades asociadas a cada pedido.
+
+- 1.Pedidos
+
+Esta clase contiene los métodos necesarios para consultar, crear, modificar y eliminar pedidos mediante las correspondientes operaciones SQL.
+
+A diferencia de las clases anteriores, debemos tener en cuenta que un pedido puede contener varios productos, los cuales se almacenan por separado en Detalle_Pedido.
+
+La fecha se valida en formato YYYY-MM-DD y se convierte a un valor de tipo DATE de Oracle al guardar el pedido.
+
+`obtenerPedidos()` \
+`crearPedido(int $codigo, int $cliente, string $fecha)` \
+`actualizarPedido(int $codigo, int $cliente, string $fecha)` \
+`eliminarPedido(int $codigo)` 
+
+- 2.Detalle Pedido
+
+Esta clase tiene una funcionalidad más importante, ya que además de gestionar los detalles debe controlar las existencias de los productos.
+
+Cuando añadimos un producto a un pedido, primero comprobamos que exista, que no esté repetido en ese pedido y que haya suficientes unidades disponibles, por eso usaremos métodos de otras clases, para apoyarnos.
+
+También usamos la cláusula `FOR UPDATE`, que bloquea el dato para que otra transacción no lo modifique a la vez. Y si hay stock y todo es correcto lo descontamos y añadimos al detalle.
+
+```php
+
+$sql = "SELECT Cantidad FROM Stock
+        WHERE Cproducto = ? FOR UPDATE";
+
+$stmt = $this->db->prepare($sql);
+$stmt->execute([$codigoProducto]);
+
+
+$sql = "UPDATE Stock
+        SET Cantidad = Cantidad - ?
+        WHERE Cproducto = ?";
+
+$stmt = $this->db->prepare($sql);
+$stmt->execute([$cantidad, $codigoProducto]);
+
+```
+
+`obtenerDetalles() ` \
+`obtenerDetallesPedido(int $codigoPedido) ` \
+`obtenerDetalle(int $codigoPedido, int $codigoProducto) ` \
+`existeDetalle(int $codigoPedido, int $codigoProducto) ` \
+`insertarDetalle(int $codigoPedido, int $codigoProducto, int $cantidad) ` \
+`actualizarDetalle(int $codigoPedido, int $codigoProducto, int $nuevaCantidad) ` \
+`eliminarDetalle(int $codigoPedido, int $codigoProducto) ` \
+`eliminarDetallesPedido(int $codigoPedido) ` 
+
+Por último, cuando eliminamos un detalle, únicamente ejecutamos el DELETE correspondiente. El `trigger de Oracle`, que definimos anteriormente en setupBD.php, se encarga de devolver automáticamente esas unidades al stock.
+
+
+
+### /API/ - FILAS | PEDIDOS | TABLAS
+
+Aqui empezamos con los archivos de la carpeta API, ya que mucha de la funcionalidad de estos es de apoyo para JS, para que el Frontend recupere ciertos datos para las tablas, o al modificar filas sin necesidad de recargar la página.
+
+Pero lo interesante está en api/pedidos.php, el cuál es el archivo que se encarga de la lógica y el funcionamiento de las transacciones, además de conectar con JS y permitir ver el proceso de la transacción en pantalla.
+
+`api/tablas.php` y `/api/filas.php`
+
+Por ejemplo estos archivos hacen de intermediario en lo comentado anteriormente.
+
+`tablas.php` permite a JS realizar una petición GET mediante fetch() y recuperar datos actualizados. Y de cara a la BBDD usa los métodos creados en las clases anteriores para la funcionalidad.
+
+
+`filas.php` a diferencia del anterior recibe una petición POST con información en formato JSON, utiliza un switch para la tabla correspondiente y llamara al método correcto.
+
+Aqui si que usamos una pequeña transacción, funciona para cualquier cambio, pero por ejemplo el ejemplo más adecuado es cuando cambiamos detallePedido y justo después se cambia el stock, funcionan como dos consultas que deben de ser correctas ambas. 
+
+```php
+
+$datos = json_decode(
+    file_get_contents('php://input'),
+    true,
+    512,
+    JSON_THROW_ON_ERROR
+);
+
+$tabla = $datos['tabla'] ?? '';
+$accion = $datos['accion'] ?? '';
+$fila = $datos['fila'] ?? null;
+$clave = $datos['clave'] ?? null;
+
+...
+
+$db->beginTransaction();
+
+...
+
+$exito = $detalles->actualizarDetalle(
+    entero($clave[0] ?? null, 'Cpedido'),
+    entero($clave[1] ?? null, 'Cproducto'),
+    entero($fila[2] ?? null, 'Cantidad')
+);
+
+/* en el try{}  por si funciona correctamente */
+$db->commit();
+
+/* en el }cathc{}  por si falla la transacción. */
+if ($db instanceof PDO && $db->inTransaction()) {
+    $db->rollBack();
+}
+
+```
+
+
+Y finalmente tenemos `api/pedidos.php`, aqui ya usamos Transacciones completas entre pedidos y detallePedidos usando commit, savepoint y rollback.
+
+La idea principal es poder iniciar un pedido, e ir añadiendo productos, y quitandolos si es necesario creando savepoints y haciendo rollback e incluso una limpieza completa, una vez tenemos todo terminado hacemos el commit y listo.
+
+Como antes recibimos la información desde JS mediante POST (formato JSON), lo formateamos con json_decode() y los usamos más adelante
+
+Después iniciamos la transacción e insertamos la cabecera del pedido creando el SAVEPOINT inicial:
+
+```php
+
+$db->beginTransaction();
+
+$pedidos->crearPedido($codigo, $cliente, $fecha);
+
+$db->exec('SAVEPOINT inicio_detalles');
+
+```
+
+Lo siguiente es declarar ciertas variables de control, y dentro de un bucle con switch creamos los Savepoints o hacemos los Rollbacks dependiendo de lo que hagamos.
+
+```php
+
+/* Creacion de Savepoint */
+$db->exec("SAVEPOINT $nombreSavepoint");
+
+/* Rollback de 1 detalle/producto del pedido */
+$db->exec("ROLLBACK TO SAVEPOINT $destino");
+
+/* Rollback a inicio ya sea por Limpiar o Cancelar la acción respectivamente. */
+$db->exec('ROLLBACK TO SAVEPOINT inicio_detalles');
+$db->rollBack();
+
+/* Para finalizar si ya esta todo correcto. */
+$db->commit();
+```
+
+Esto último en caso de que todo este correcto, tenemos en cuenta que este codigo está dentro de un try/catch, pues en caso del catch tenemos un rollback más al inicio.
+
+```php
+
+if ($db instanceof PDO && $db->inTransaction()) {
+    try {
+        $db->rollBack();
+    } catch (Throwable $ignorado) {
+    }
+}
+
 ```

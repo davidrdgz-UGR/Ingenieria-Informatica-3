@@ -13,8 +13,7 @@ class Clientes
     }
 
     // Obtener todos los clientes.
-    public function obtenerClientes(): array
-    {
+    public function obtenerClientes(): array{
         $sql = "SELECT ID_Cliente, Nombre
                 FROM Clientes ORDER BY ID_Cliente";
 
@@ -91,8 +90,7 @@ class Clientes
     }
 
     // Eliminar un cliente.
-    public function eliminarCliente(int $codigo): bool
-    {
+    public function eliminarCliente(int $codigo): bool{
         if ($codigo <= 0) {
             throw new InvalidArgumentException(
                 "Código no válido"
