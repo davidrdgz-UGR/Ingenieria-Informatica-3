@@ -145,15 +145,15 @@ try {
 
     $productos = [
         [1, "Teclado", 50],
-        [2, "Ratón", 40],
+        [2, "Raton", 40],
         [3, "Monitor", 30],
-        [4, "Portátil", 25],
+        [4, "Portatil", 25],
         [5, "Auriculares", 60],
         [6, "Webcam", 15],
         [7, "Cable HDMI", 80],
         [8, "Impresora", 10],
         [9, "Altavoces", 45],
-        [10, "Micrófono", 20]
+        [10, "Microfono", 20]
     ];
 
     $stmt = $db->prepare(
