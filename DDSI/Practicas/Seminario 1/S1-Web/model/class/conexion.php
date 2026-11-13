@@ -5,14 +5,14 @@ class Conexion
 {
     private PDO $conexion;
 
-    public function __construct()
-    {
+    public function __construct(){
         // DSN ODBC configurado previamente en el equipo.
         $host = "oracle0.ugr.es";
         $puerto = "1521";
         $servicio = "practbd";
         $usuario = "x5123750";
         $password = "x5123750";
+        // $dsn = "oci:dbname=//$host:$puerto/$servicio";
 
         $dsn = "odbc:OracleDDSI";
 
@@ -21,13 +21,11 @@ class Conexion
         ]);
     }
 
-    public function obtenerConexion(): PDO
-    {
+    public function obtenerConexion(): PDO{
         return $this->conexion;
     }
 
-    public function cerrarConexion(): void
-    {
+    public function cerrarConexion(): void{
         unset($this->conexion);
     }
 }
