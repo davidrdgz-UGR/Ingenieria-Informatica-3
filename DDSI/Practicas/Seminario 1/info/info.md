@@ -341,7 +341,7 @@ Por ejemplo estos archivos hacen de intermediario en lo comentado anteriormente.
 
 `filas.php` a diferencia del anterior recibe una petición POST con información en formato JSON, utiliza un switch para la tabla correspondiente y llamara al método correcto.
 
-Aqui si que usamos una pequeña transacción, funciona para cualquier cambio, pero por ejemplo el ejemplo más adecuado es cuando cambiamos detallePedido y justo después se cambia el stock, funcionan como dos consultas que deben de ser correctas ambas. 
+Aqui si que usamos una pequeña transacción, funciona para cualquier cambio, pero el ejemplo más adecuado es cuando cambiamos detallePedido y justo después se cambia el stock, funcionan como dos consultas que deben de ser correctas ambas. 
 
 ```php
 
