@@ -428,3 +428,14 @@ if ($db instanceof PDO && $db->inTransaction()) {
 }
 
 ```
+
+### FOTOS WEB
+
+Para terminar esta documentación de la práctica vamos a dejar algunas imágenes de la web.
+
+![cap6](cap/cap6.png)
+![cap7](cap/cap7.png)
+![cap8](cap/cap8.png)
+![cap9](cap/cap9.png)
+![cap10](cap/cap10.png)
+![cap11](cap/cap11.png)
