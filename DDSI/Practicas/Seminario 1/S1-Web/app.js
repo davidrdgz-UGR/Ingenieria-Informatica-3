@@ -154,6 +154,9 @@ const formularios = {
     validar(valores) {
       const pedidoOk = tablas.Pedido.filas.some(
         (fila) => Number(fila[0]) === Number(valores.Cpedido)
+      ) || (
+        pedidoPendiente !== null &&
+        Number(pedidoPendiente.Cpedido) === Number(valores.Cpedido)
       );
       if (!pedidoOk) return "El pedido seleccionado no existe.";
 
@@ -166,7 +169,14 @@ const formularios = {
           Number(fila[0]) === Number(valores.Cpedido) &&
           Number(fila[1]) === Number(valores.Cproducto)
       );
-      if (repetido) return "Ese producto ya está en el pedido.";
+      const repetidoPendiente = pedidoPendiente !== null &&
+        Number(pedidoPendiente.Cpedido) === Number(valores.Cpedido) &&
+        pedidoPendiente.detalles.some(
+          (detalle) => detalle.producto === Number(valores.Cproducto)
+        );
+      if (repetido || repetidoPendiente) {
+        return "Ese producto ya está en el pedido.";
+      }
 
       const cantidad = Number(valores.Cantidad);
       const disponible = stockDe(valores.Cproducto);
@@ -244,6 +254,10 @@ const relaciones = {
 
 let tablaActual = null;
 
+/* Pedido nuevo pendiente de confirmar: no cambia Oracle hasta finalizar. */
+let pedidoPendiente = null;
+let modoEdicion = false;
+
 /* ---------- Referencias al DOM ---------- */
 const selectorTabla = document.getElementById("selector-tabla");
 const titulo = document.getElementById("titulo-tabla");
@@ -252,6 +266,8 @@ const thead = tabla.querySelector("thead");
 const tbody = tabla.querySelector("tbody");
 const btnReiniciar = document.getElementById("btn-reiniciar");
 
+/* const btnEditar = document.getElementById("btn-editar"); */
+const btnGuardar = document.getElementById("btn-guardar");
 const mensaje = document.getElementById("mensaje");
 const tarjeta = document.querySelector(".tarjeta");
 
@@ -260,6 +276,119 @@ const btnAnadir = document.getElementById("btn-anadir");
 const formulario = document.getElementById("formulario");
 const formularioCampos = document.getElementById("formulario-campos");
 const btnCancelar = document.getElementById("btn-cancelar");
+
+/* ---------- Controles de transacción ----------
+   Se añaden usando los estilos ya existentes, sin tocar HTML ni CSS.
+   Los formularios de Pedido y Detalle_Pedido NO se modifican.
+------------------------------------------------------------------- */
+const panelPedido = document.createElement("div");
+panelPedido.className = "formulario";
+panelPedido.hidden = true;
+
+const resumenPedido = document.createElement("p");
+const accionesPedido = document.createElement("div");
+accionesPedido.className = "formulario-botones";
+
+function crearBotonPedido(texto, clase, accion) {
+  const boton = document.createElement("button");
+  boton.type = "button";
+  boton.className = `btn ${clase}`.trim();
+  boton.textContent = texto;
+  boton.addEventListener("click", accion);
+  return boton;
+}
+
+const btnLimpiarDetalles = crearBotonPedido("Limpiar detalles", "", limpiarDetalles);
+const btnCancelarPedido = crearBotonPedido("Cancelar pedido", "btn-peligro", () => procesarPedido("cancelar"));
+const btnFinalizarPedido = crearBotonPedido("Finalizar pedido", "btn-principal", () => procesarPedido("finalizar"));
+
+accionesPedido.append(btnLimpiarDetalles, btnCancelarPedido, btnFinalizarPedido);
+panelPedido.append(resumenPedido, accionesPedido);
+tarjeta.querySelector(".acciones-tabla").after(panelPedido);
+
+function actualizarPanelPedido() {
+  const activo = pedidoPendiente !== null;
+  panelPedido.hidden = !activo || !["Pedido", "Detalle_Pedido"].includes(tablaActual);
+
+  if (activo) {
+    const cliente = tablas.Clientes?.filas.find(
+      (fila) => Number(fila[0]) === pedidoPendiente.Ccliente
+    );
+    const cantidadProductos = pedidoPendiente.detalles.length;
+    resumenPedido.textContent =
+      `Pedido ${pedidoPendiente.Cpedido} de ${cliente ? cliente[1] : pedidoPendiente.Ccliente} ` +
+      `— ${cantidadProductos} producto(s) provisional(es). Sin confirmar en Oracle.`;
+  }
+
+  btnLimpiarDetalles.disabled = !activo || pedidoPendiente.detalles.length === 0 || operacionPendiente;
+  btnCancelarPedido.disabled = !activo || operacionPendiente;
+  btnFinalizarPedido.disabled = !activo || operacionPendiente;
+  btnAnadir.disabled = operacionPendiente || (activo && tablaActual === "Pedido");
+}
+
+function limpiarDetalles() {
+  if (!pedidoPendiente || operacionPendiente || !pedidoPendiente.detalles.length) return;
+
+  // PHP ejecutará realmente ROLLBACK TO SAVEPOINT, en la misma transacción.
+  pedidoPendiente.operaciones.push({ tipo: "limpiar" });
+  pedidoPendiente.detalles = [];
+
+  cerrarFormulario();
+  pintarTabla();
+  actualizarPanelPedido();
+  mostrarMensaje("Detalles retirados del borrador. El SAVEPOINT se ejecutará al finalizar.");
+}
+
+async function procesarPedido(tipo) {
+  if (!pedidoPendiente || operacionPendiente) return;
+
+  operacionPendiente = true;
+  actualizarPanelPedido();
+
+  try {
+    const respuesta = await fetch("api/pedidos.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        Cpedido: pedidoPendiente.Cpedido,
+        Ccliente: pedidoPendiente.Ccliente,
+        Fecha_pedido: pedidoPendiente.Fecha_pedido,
+        operaciones: [...pedidoPendiente.operaciones, { tipo }]
+      })
+    });
+
+    const texto = await respuesta.text();
+    let resultado;
+    try {
+      resultado = JSON.parse(texto);
+    } catch {
+      throw new Error(`Respuesta no válida del servidor (HTTP ${respuesta.status}).`);
+    }
+    if (!respuesta.ok || !resultado.ok) {
+      throw new Error(resultado.error || `Error HTTP ${respuesta.status}`);
+    }
+
+    // La transacción ha finalizado en el servidor (COMMIT o ROLLBACK).
+    pedidoPendiente = null;
+    cerrarFormulario();
+    filaEditando = null;
+    mostrarMensaje(resultado.mensaje);
+
+    try {
+      await cargarTablas();
+      pintarTabla();
+    } catch (error) {
+      mostrarMensaje(`${resultado.mensaje} No se pudieron refrescar las tablas: ${error.message}`);
+    }
+  } catch (error) {
+    mostrarMensaje(`Error en la transacción: ${error.message}`);
+  } finally {
+    operacionPendiente = false;
+    actualizarPanelPedido();
+  }
+}
+
+
 
 /* ---------- Conexión con la BBDD ---------- */
 async function cargarTablas() {
@@ -329,9 +458,9 @@ const columnasEditables = {
 let filaEditando = null;
 let operacionPendiente = false;
 
-/* ---------- Botones con iconos ---------- */
 function botonAccion(texto, clase, accion) {
 
+  // Iconos SVG.
   const iconos = {
     Editar: `
       <svg viewBox="0 0 24 24" width="18" height="18"
@@ -372,9 +501,14 @@ function botonAccion(texto, clase, accion) {
 
   boton.type = "button";
   boton.className = `btn btn-icono ${clase}`;
+
+  // Mostrar el nombre al pasar el ratón.
   boton.title = texto;
+
+  // Accesibilidad: nombre del botón para lectores de pantalla.
   boton.setAttribute("aria-label", texto);
 
+  // Insertar el icono correspondiente.
   if (iconos[texto]) {
     boton.innerHTML = iconos[texto];
   } else {
@@ -390,7 +524,24 @@ function botonAccion(texto, clase, accion) {
 function pintarTabla() {
   if (!tablaActual || !tablas[tablaActual]) return;
 
-  const { columnas, filas } = tablas[tablaActual];
+  const { columnas, filas: filasGuardadas } = tablas[tablaActual];
+
+  // Los registros provisionales aparecen en las tablas habituales,
+  // sin insertarlos todavía en la base de datos.
+  const filas = [...filasGuardadas];
+  if (pedidoPendiente && tablaActual === "Pedido") {
+    filas.push([
+      pedidoPendiente.Cpedido,
+      pedidoPendiente.Ccliente,
+      pedidoPendiente.Fecha_pedido
+    ]);
+  }
+  if (pedidoPendiente && tablaActual === "Detalle_Pedido") {
+    pedidoPendiente.detalles.forEach((detalle) => {
+      filas.push([pedidoPendiente.Cpedido, detalle.producto, detalle.cantidad]);
+    });
+  }
+
   titulo.textContent = tablaActual;
   thead.replaceChildren();
   tbody.replaceChildren();
@@ -420,7 +571,8 @@ function pintarTabla() {
 
   filas.forEach((fila, indice) => {
     const tr = document.createElement("tr");
-    const editarEsta = filaEditando === indice;
+    const provisional = indice >= filasGuardadas.length;
+    const editarEsta = !provisional && filaEditando === indice;
     const controles = {};
 
     fila.forEach((valor, i) => {
@@ -447,7 +599,6 @@ function pintarTabla() {
           if (campo.maxlength !== undefined) {
             input.maxLength = campo.maxlength;
           }
-
           if (campo.tipo === "number") input.step = "1";
         }
 
@@ -468,7 +619,10 @@ function pintarTabla() {
     const acciones = document.createElement("td");
     acciones.className = "acciones-fila";
 
-    if (editarEsta) {
+    
+    if (provisional) {
+      acciones.textContent = "Provisional";
+    } else if (editarEsta) {
       acciones.append(
         // Guardar cambios
         botonAccion(
@@ -510,6 +664,7 @@ function pintarTabla() {
       );
     }
 
+
     tr.appendChild(acciones);
     tbody.appendChild(tr);
   });
@@ -519,7 +674,6 @@ function mostrarMensaje(texto) {
   mensaje.textContent = texto;
 }
 
-/* ---------- Guardar cambios de una fila ---------- */
 async function guardarEdicion(indice, controles) {
   if (operacionPendiente) return;
 
@@ -562,8 +716,7 @@ async function guardarEdicion(indice, controles) {
   }
 }
 
-/* ---------- Confirmación para eliminar registros ---------- */
-
+/* Modal de confirmación de borrado; no utiliza confirm() del navegador. */
 const modalEliminar = document.createElement("dialog");
 modalEliminar.className = "modal-reiniciar";
 
@@ -670,18 +823,24 @@ function pintarFormulario() {
     label.textContent = campo.nombre;
 
     let input;
-
     if (campo.tipo === "select") {
       // Desplegable cuyas opciones salen de otra tabla (relación)
       input = document.createElement("select");
       const opciones = campo.opciones();
+
+      // El pedido nuevo se puede elegir en el formulario existente de detalles.
+      if (tablaActual === "Detalle_Pedido" && campo.nombre === "Cpedido" && pedidoPendiente) {
+        opciones.push({
+          valor: pedidoPendiente.Cpedido,
+          texto: `Pedido ${pedidoPendiente.Cpedido} (provisional)`
+        });
+      }
 
       const vacia = document.createElement("option");
       vacia.value = "";
       vacia.textContent = opciones.length
         ? campo.placeholder ?? "Selecciona una opción"
         : campo.textoVacio ?? "No hay opciones";
-
       vacia.disabled = true;
       vacia.selected = true;
       input.appendChild(vacia);
@@ -693,10 +852,12 @@ function pintarFormulario() {
         input.appendChild(opcion);
       });
 
+      if (tablaActual === "Detalle_Pedido" && campo.nombre === "Cpedido" && pedidoPendiente) {
+        input.value = String(pedidoPendiente.Cpedido);
+      }
     } else {
       input = document.createElement("input");
       input.type = campo.tipo;
-
       if (campo.min !== undefined) input.min = campo.min;
       if (campo.tipo === "number") input.step = 1;
       if (campo.maxlength !== undefined) input.maxLength = campo.maxlength;
@@ -723,24 +884,19 @@ function pintarFormulario() {
   if (dinamicos.length) {
     const refrescar = () => {
       const valores = Object.fromEntries(new FormData(formulario));
-
       dinamicos.forEach(({ campo, input, pista }) => {
         if (campo.max) {
           const max = campo.max(valores);
-
           if (max === null) input.removeAttribute("max");
           else input.max = max;
         }
-
         pista.textContent = campo.pista ? campo.pista(valores) : "";
       });
     };
-
     formularioCampos.querySelectorAll("input, select").forEach((el) => {
       el.addEventListener("input", refrescar);
       el.addEventListener("change", refrescar);
     });
-
     refrescar();
   }
 }
@@ -760,6 +916,7 @@ function cerrarFormulario() {
 function prepararFormulario() {
   cerrarFormulario();
   btnAnadir.hidden = !tablaActual || !formularios[tablaActual];
+  actualizarPanelPedido();
 }
 
 btnAnadir.addEventListener("click", () => {
@@ -769,7 +926,6 @@ btnAnadir.addEventListener("click", () => {
 
 btnCancelar.addEventListener("click", cerrarFormulario);
 
-/* ---------- Guardar una nueva fila ---------- */
 formulario.addEventListener("submit", async (e) => {
   e.preventDefault(); // evita que la página se recargue
 
@@ -779,26 +935,64 @@ formulario.addEventListener("submit", async (e) => {
   const valores = Object.fromEntries(new FormData(formulario));
 
   const error = config.validar?.(valores);
-
   if (error) {
     mostrarMensaje(error);
+    return;
+  }
+
+  // Cabecera del pedido: mantenerla en borrador hasta COMMIT o ROLLBACK.
+  if (tablaActual === "Pedido") {
+    if (pedidoPendiente) {
+      mostrarMensaje("Finaliza o cancela el pedido provisional antes de crear otro.");
+      return;
+    }
+
+    pedidoPendiente = {
+      Cpedido: Number(valores.Cpedido),
+      Ccliente: Number(valores.Ccliente),
+      Fecha_pedido: valores.Fecha_pedido,
+      operaciones: [],
+      detalles: []
+    };
+
+    cerrarFormulario();
+    pintarTabla();
+    actualizarPanelPedido();
+    mostrarMensaje("Pedido provisional creado. Ve a Detalle_Pedido para añadir productos, o finalízalo vacío.");
+    return;
+  }
+
+  // Detalle_Pedido conserva sus tres campos originales.
+  // Si pertenece al pedido provisional, se registra en el borrador.
+  if (tablaActual === "Detalle_Pedido" && pedidoPendiente &&
+      Number(valores.Cpedido) === pedidoPendiente.Cpedido) {
+    pedidoPendiente.operaciones.push({
+      tipo: "anadir",
+      producto: Number(valores.Cproducto),
+      cantidad: Number(valores.Cantidad)
+    });
+    pedidoPendiente.detalles.push({
+      producto: Number(valores.Cproducto),
+      cantidad: Number(valores.Cantidad)
+    });
+
+    cerrarFormulario();
+    pintarTabla();
+    actualizarPanelPedido();
+    mostrarMensaje("Detalle añadido al borrador. Se guardará en Oracle al finalizar el pedido.");
     return;
   }
 
   // Fila en el mismo orden que las columnas; los number se convierten a número
   const fila = config.campos.map((campo) => {
     const valor = valores[campo.nombre];
-
-    return campo.tipo === "number" || campo.numero
-      ? Number(valor)
-      : valor.trim();
+    return campo.tipo === "number" || campo.numero ? Number(valor) : valor.trim();
   });
 
   operacionPendiente = true;
 
   try {
-    // Pedido crea su cabecera.
-    // Detalle_Pedido mantiene su formulario independiente.
+    // Pedido crea la cabecera; Detalle_Pedido tiene su propio formulario.
     await enviarOperacion("crear", tablaActual, fila);
     await cargarTablas();
 
@@ -821,6 +1015,7 @@ function mostrarOcultarTarjeta() {
 
 /* ---------- Cambiar de tabla ---------- */
 selectorTabla.addEventListener("change", () => {
+
   tablaActual = selectorTabla.value || null;
 
   mostrarOcultarTarjeta();
@@ -828,6 +1023,7 @@ selectorTabla.addEventListener("change", () => {
 
   filaEditando = null;
   pintarTabla();
+  actualizarPanelPedido();
 });
 
 function rellenarSelector() {
@@ -889,6 +1085,7 @@ btnConfirmarReinicio.addEventListener("click", async () => {
 
     tablaActual = null;
     filaEditando = null;
+    pedidoPendiente = null;
 
     rellenarSelector();
     mostrarOcultarTarjeta();

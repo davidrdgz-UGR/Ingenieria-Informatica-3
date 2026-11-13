@@ -88,6 +88,7 @@ try {
                 CONSTRAINT fk_pedido_cliente
                     FOREIGN KEY (Ccliente)
                     REFERENCES Clientes(ID_Cliente)
+                    ON DELETE CASCADE
             )
         ",
 
@@ -102,7 +103,8 @@ try {
 
                 CONSTRAINT fk_detalle_pedido
                     FOREIGN KEY (Cpedido)
-                    REFERENCES Pedido(Cpedido),
+                    REFERENCES Pedido(Cpedido)
+                    ON DELETE CASCADE,
 
                 CONSTRAINT fk_detalle_producto
                     FOREIGN KEY (Cproducto)
@@ -120,7 +122,24 @@ try {
         // echo "Tabla $nombre creada.\n";
     }
 
-    // 3. INSERTAR LOS 10 PRODUCTOS INICIALES
+    // 3. RESTAURAR STOCK AL BORRAR DETALLES
+    // El borrado en cascada de Clientes -> Pedido -> Detalle_Pedido
+    // también activa este trigger para cada detalle eliminado.
+    // Usamos :OLD para no consultar tablas que se están borrando.
+    // El stock se devuelve aquí, NO desde DetallePedido.php.
+
+    $db->exec("
+        CREATE OR REPLACE TRIGGER trg_detalle_restaurar_stock
+        AFTER DELETE ON Detalle_Pedido
+        FOR EACH ROW
+        BEGIN
+            UPDATE Stock
+            SET Cantidad = Cantidad + :OLD.Cantidad
+            WHERE Cproducto = :OLD.Cproducto;
+        END;
+    ");
+
+    // 4. INSERTAR LOS 10 PRODUCTOS INICIALES
 
     // echo "\nINSERTANDO PRODUCTOS...\n";
 
@@ -146,7 +165,7 @@ try {
         $stmt->execute($producto);
     }
 
-    // 4. INSERTAR CLIENTES INICIALES
+    // 5. INSERTAR CLIENTES INICIALES
 
     // echo "\nINSERTANDO CLIENTES...\n";
 
@@ -168,7 +187,7 @@ try {
     // Confirmar inserciones.
     $db->exec("COMMIT");
 
-    // 5. COMPROBAR RESULTADO
+    // 6. COMPROBAR RESULTADO
 
     // echo "\nRESUMEN DE LA BASE DE DATOS\n";
 
@@ -192,7 +211,7 @@ try {
     $db = null;
     $conexion->cerrarConexion();
 
-    // 6. RESPUESTA JSON PARA JAVASCRIPT
+    // 7. RESPUESTA JSON PARA JAVASCRIPT
 
     echo json_encode([
         "ok" => true,

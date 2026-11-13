@@ -199,41 +199,16 @@ class DetallePedido
         return true;
     }
 
-    // Eliminar un detalle y devolver las unidades al stock.
+    // Eliminar un detalle. El trigger de Oracle devuelve el stock.
     public function eliminarDetalle(
         int $codigoPedido,
         int $codigoProducto
     ): bool {
 
-        // Bloquear el producto.
-        $stmt = $this->db->prepare(
-            "SELECT Cantidad FROM Stock
-             WHERE Cproducto = ? FOR UPDATE"
-        );
-        $stmt->execute([$codigoProducto]);
-
-        if ($stmt->fetchColumn() === false) {
-            return false;
-        }
-        $stmt->closeCursor();
-
-        // Consultar la cantidad del detalle.
-        $stmt = $this->db->prepare(
-            "SELECT Cantidad FROM Detalle_Pedido
-             WHERE Cpedido = ? AND Cproducto = ?
-             FOR UPDATE"
-        );
-
-        $stmt->execute([$codigoPedido, $codigoProducto]);
-
-        $cantidad = $stmt->fetchColumn();
-        $stmt->closeCursor();
-
-        if ($cantidad === false) {
-            return false;
+        if ($codigoPedido <= 0 || $codigoProducto <= 0) {
+            throw new InvalidArgumentException("Códigos no válidos");
         }
 
-        // Eliminar el detalle.
         $stmt = $this->db->prepare(
             "DELETE FROM Detalle_Pedido
              WHERE Cpedido = ? AND Cproducto = ?"
@@ -241,33 +216,24 @@ class DetallePedido
 
         $stmt->execute([$codigoPedido, $codigoProducto]);
 
-        // Restaurar el stock.
-        $stmt = $this->db->prepare(
-            "UPDATE Stock
-             SET Cantidad = Cantidad + ?
-             WHERE Cproducto = ?"
-        );
-
-        $stmt->execute([$cantidad, $codigoProducto]);
-
-        return true;
+        return $stmt->rowCount() > 0;
     }
 
     // Eliminar todos los detalles de un pedido.
+    // El trigger restaura el stock de cada fila eliminada.
     public function eliminarDetallesPedido(int $codigoPedido): bool
     {
-        // Obtener productos y cantidades del pedido.
-        $detalles = $this->obtenerDetallesPedido($codigoPedido);
-
-        foreach ($detalles as $detalle) {
-            $this->eliminarDetalle(
-                (int) $detalle["CPEDIDO"],
-                (int) $detalle["CPRODUCTO"]
-            );
+        if ($codigoPedido <= 0) {
+            throw new InvalidArgumentException("Código de pedido no válido");
         }
 
-        return true;
+        $stmt = $this->db->prepare(
+            "DELETE FROM Detalle_Pedido WHERE Cpedido = ?"
+        );
+
+        return $stmt->execute([$codigoPedido]);
     }
+
 }
 
 
