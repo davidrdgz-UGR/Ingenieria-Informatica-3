@@ -1,0 +1,11 @@
+- [X] Esquema de Caja Negra **CONJUNTO**
+- [X] DFD Armazón (DFD0)    **CONJUNTO**
+- [X] Esquemas externos de los elementos del DFD0   **SEMI-CONJUNTO**
+- [X] ER Armazón (ER0)   **CONJUNTO**
+- [X] Un DFD refinado por cada subsistema del DFD0, con agentes externos, almacenes y flujos correspondientes    **INDIVIDUAL**
+- [X] Un DFD refinado por cada almacén del DFD0, conectado con los procesos originales correspondientes  **SEMI-CONJUNTO**
+- [X] DFD1, integrando los diagramas refinados   **CONJUNTO**
+- [] Esquemas externos de los elementos del DFD1    **SEMI-CONJUNTO**
+- [] ER1, integrando los esquemas externos según ER0    **CONJUNTO**
+- [] Conjunto de tablas obtenido del esquema E/R    **SEMI-CONJUNTO**
+- [] Dependencias funcionales, normalización, tablas resultantes y sus claves primarias y externas  **SEMI-CONJUNTO**
