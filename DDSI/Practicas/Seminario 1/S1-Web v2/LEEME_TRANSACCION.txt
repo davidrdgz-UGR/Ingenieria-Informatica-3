@@ -1,0 +1,79 @@
+SEMINARIO 1 DDSI - TRANSACCION PERSISTENTE DE PEDIDOS
+====================================================
+
+QUE CAMBIA
+----------
+Antes, app.js guardaba los productos en arrays JavaScript y enviaba toda la
+secuencia a api/pedidos.php al finalizar. Ahora, cada clic realiza la operación
+real en Oracle dentro de UNA MISMA transacción, mantenida por el proceso PHP CLI.
+
+- Crear pedido: INSERT en Pedido + BEGIN + SAVEPOINT inicio_detalles.
+- Añadir producto: SELECT FOR UPDATE, UPDATE Stock, INSERT Detalle_Pedido y
+  SAVEPOINT individual.
+- Deshacer último: ROLLBACK TO SAVEPOINT anterior.
+- Limpiar detalles: ROLLBACK TO SAVEPOINT inicio_detalles.
+- Finalizar: un único COMMIT.
+- Cancelar: un único ROLLBACK.
+
+JavaScript no simula ni añade filas provisionalmente: después de cada operación
+recibe las tablas consultadas desde la MISMA conexión Oracle que mantiene abierta
+la transacción y vuelve a pintar la tabla sin recargar la página.
+
+IMPORTANTE SOBRE SQL DEVELOPER
+------------------------------
+SQL Developer usa otra conexión. Oracle no permite que vea filas no confirmadas
+de la transacción. Durante el pedido, las filas pendientes se ven desde la propia
+conexión persistente (y por tanto en la web, consultando esa conexión). Después
+del COMMIT sí aparecen desde SQL Developer. Después del ROLLBACK desaparecen.
+
+INSTALACION
+-----------
+1. Copia el contenido de esta carpeta sobre tu proyecto actual, conservando la
+   estructura de carpetas.
+2. No ejecutes setupBD.php: no se ha cambiado el esquema de la base de datos.
+3. Comprueba que XAMPP está instalado en C:\xampp. Si no, edita PHP_EXE en
+   iniciar_worker.bat.
+4. Comprueba que el PHP de consola utiliza el mismo php.ini que Apache y tiene
+   habilitada la extensión pdo_odbc. En CMD:
+       C:\xampp\php\php.exe --ini
+       C:\xampp\php\php.exe -m
+   Debe aparecer pdo_odbc y PDO debe listar el driver odbc.
+5. Inicia Apache desde XAMPP.
+6. Ejecuta iniciar_worker.bat y deja abierta esa ventana mientras uses la web.
+7. Abre la web desde http://localhost/NombreDeTuCarpeta/ (no abras index.php
+   directamente como archivo).
+
+COMO FUNCIONA LA SESION
+-----------------------
+La sesion PHP guarda un token aleatorio para identificar el pedido del usuario.
+El proceso worker mantiene en memoria ese token asociado a una conexion PDO real
+con Oracle y a su transaccion abierta. Las peticiones AJAX se envian al worker
+por TCP local (127.0.0.1:8765). Asi cada peticion reutiliza la misma conexion y
+los mismos SAVEPOINT de Oracle.
+
+El proceso revierte automaticamente las transacciones que llevan 30 minutos sin
+actividad. Si se cierra la ventana del worker o se detiene PHP, Oracle cerrara la
+conexion y revertira las transacciones que sigan abiertas.
+
+PRUEBA RECOMENDADA
+------------------
+1. Crear un pedido.
+2. Cambiar a Detalle_Pedido y añadir un producto.
+3. Volver a Stock: la web consulta la misma conexion y muestra el stock descontado.
+4. Añadir otro producto y comprobar el segundo detalle.
+5. Deshacer el ultimo: se ejecuta ROLLBACK TO SAVEPOINT y el stock se restaura.
+6. Cancelar: ROLLBACK completo. El pedido desaparece.
+7. Repetir y finalizar: COMMIT. Ahora el pedido y el stock actualizado aparecen
+   tambien desde SQL Developer.
+
+LIMITACIONES Y SEGURIDAD
+------------------------
+- El worker escucha unicamente en 127.0.0.1; esta pensado para XAMPP local y
+  una practica de un usuario, no para desplegarse directamente en Internet.
+- El worker permite un único pedido transaccional abierto a la vez para evitar
+  que dos pedidos de esta práctica se bloqueen mutuamente sobre el stock.
+- Mientras hay una transaccion abierta, las filas de stock modificadas quedan
+  bloqueadas para otras transacciones hasta COMMIT/ROLLBACK.
+- No se deben ejecutar operaciones CRUD independientes ni reiniciar la BD
+  mientras hay un pedido abierto. La interfaz lo bloquea.
+- Mantén abierta la ventana del worker durante la demostración.

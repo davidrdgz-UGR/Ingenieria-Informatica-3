@@ -31,7 +31,7 @@ class Conexion
 }
 
 /* PRUEBAS Y CONEXIÓN */
-/* 
+
 $conexion = new Conexion();
 $db = $conexion->obtenerConexion();
 
@@ -50,4 +50,3 @@ print_r($productos);
 $stmt = null;
 $db = null;
 $conexion->cerrarConexion();
- */

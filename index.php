@@ -3,7 +3,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0; url=/DDSI/Practicas/Seminario 1/S1-Web/index.php">
+    <meta http-equiv="refresh" content="0; url=/DDSI/Practicas/Seminario 1/S1-Web v2/index.php">
     <title>Cargando...</title>
 </head>
 <body>
