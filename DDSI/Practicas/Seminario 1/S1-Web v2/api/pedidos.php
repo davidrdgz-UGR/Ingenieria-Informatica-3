@@ -1,23 +1,17 @@
 <?php
+/*
+ * API DE TRANSACCIONES DE PEDIDOS
+ * Seminario 1 - DDSI
+ * Recibe las acciones de JavaScript y las reenvía al worker persistente.
+ */
+
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate');
 
-if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['ok' => false, 'error' => 'Método no permitido.']);
-    exit;
-}
-
-ini_set('session.gc_maxlifetime', '3600');
-session_set_cookie_params([
-    'lifetime' => 0,
-    'path' => '/',
-    'httponly' => true,
-    'samesite' => 'Lax'
-]);
+// Se conserva una marca sencilla de sesión para que filas.php bloquee
+// modificaciones CRUD mientras hay un pedido en transacción. No guarda PDO
+// ni identifica la transacción: el worker mantiene un único pedido global.
 session_start();
-
-require_once __DIR__ . '/../worker/config.php';
 
 function responder(int $codigo, array $datos): void
 {
@@ -29,21 +23,23 @@ function responder(int $codigo, array $datos): void
     exit;
 }
 
-function llamarProcesoWorker(array $peticion): array
+function llamarWorker(array $peticion): array
 {
     $direccion = 'tcp://' . PEDIDO_WORKER_HOST . ':' . PEDIDO_WORKER_PORT;
     $errno = 0;
     $errstr = '';
+
     $socket = @stream_socket_client($direccion, $errno, $errstr, 3);
 
     if (!$socket) {
         throw new RuntimeException(
-            'No está iniciado el proceso persistente de transacciones. ' .
-            'Abre iniciar_worker.bat y vuelve a intentarlo. Detalle: ' . $errstr
+            'El proceso de transacciones no está iniciado. ' .
+            'Abre iniciar_worker.bat. Detalle: ' . $errstr
         );
     }
 
     stream_set_timeout($socket, 120);
+
     $mensaje = json_encode(
         $peticion,
         JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR
@@ -51,12 +47,15 @@ function llamarProcesoWorker(array $peticion): array
 
     $total = strlen($mensaje);
     $enviados = 0;
+
     while ($enviados < $total) {
         $n = fwrite($socket, substr($mensaje, $enviados));
+
         if ($n === false || $n === 0) {
             fclose($socket);
-            throw new RuntimeException('No se pudo enviar la operación al proceso persistente.');
+            throw new RuntimeException('No se pudo enviar la operación al worker.');
         }
+
         $enviados += $n;
     }
 
@@ -69,55 +68,72 @@ function llamarProcesoWorker(array $peticion): array
         throw new RuntimeException(
             !empty($meta['timed_out'])
                 ? 'El proceso de transacciones ha tardado demasiado en responder.'
-                : 'El proceso de transacciones cerró la conexión sin responder.'
+                : 'El worker cerró la conexión sin devolver una respuesta.'
         );
     }
 
-    return json_decode($linea, true, 512, JSON_THROW_ON_ERROR);
-}
+    $respuesta = json_decode($linea, true, 512, JSON_THROW_ON_ERROR);
 
-$datos = json_decode(file_get_contents('php://input'), true);
-if (!is_array($datos)) {
-    responder(400, ['ok' => false, 'error' => 'Petición JSON incorrecta.']);
-}
-
-$accion = $datos['accion'] ?? '';
-$permitidas = ['estado', 'iniciar', 'anadir', 'deshacer', 'limpiar', 'confirmar', 'cancelar'];
-if (!in_array($accion, $permitidas, true)) {
-    responder(400, ['ok' => false, 'error' => 'Acción no permitida.']);
-}
-
-$token = $_SESSION['pedido_tx_token'] ?? null;
-
-// La consulta de estado también sirve para recuperar una transacción al recargar la web.
-if ($accion === 'estado' && !$token) {
-    session_write_close();
-    responder(200, ['ok' => true, 'activo' => false]);
-}
-
-if ($accion === 'iniciar') {
-    if ($token) {
-        session_write_close();
-        responder(409, [
-            'ok' => false,
-            'error' => 'Esta sesión ya tiene un pedido abierto. Recarga la página para recuperarlo.'
-        ]);
+    if (!is_array($respuesta)) {
+        throw new RuntimeException('El worker devolvió una respuesta incorrecta.');
     }
-    $token = bin2hex(random_bytes(32));
-    $_SESSION['pedido_tx_token'] = $token;
-    session_write_close();
-} else {
-    if (!$token) {
-        session_write_close();
-        responder(409, ['ok' => false, 'error' => 'No hay ninguna transacción activa en esta sesión.']);
-    }
-    session_write_close();
+
+    return $respuesta;
 }
+
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+    responder(405, ['ok' => false, 'error' => 'Método no permitido.']);
+}
+
+require_once __DIR__ . '/../worker/config.php';
 
 try {
-    $respuesta = llamarProcesoWorker([
+    $datos = json_decode(
+        file_get_contents('php://input'),
+        true,
+        512,
+        JSON_THROW_ON_ERROR
+    );
+
+    if (!is_array($datos)) {
+        throw new InvalidArgumentException('La petición debe ser un objeto JSON.');
+    }
+
+    $accion = $datos['accion'] ?? '';
+    $accionesPermitidas = [
+        'estado',
+        'iniciar',
+        'anadir',
+        'deshacer',
+        'limpiar',
+        'confirmar',
+        'cancelar'
+    ];
+
+    if (!in_array($accion, $accionesPermitidas, true)) {
+        throw new InvalidArgumentException('Acción no permitida.');
+    }
+
+    $sesionTienePedido = !empty($_SESSION['pedido_tx_token']);
+
+    // estado e iniciar pueden consultarse/iniciarse sin una marca previa.
+    // El resto de acciones exige que esta sesión haya iniciado el pedido.
+    if (!in_array($accion, ['estado', 'iniciar'], true) && !$sesionTienePedido) {
+        responder(409, [
+            'ok' => false,
+            'error' => 'Esta sesión no tiene un pedido abierto.'
+        ]);
+    }
+
+    if ($accion === 'estado' && !$sesionTienePedido) {
+        responder(200, ['ok' => true, 'activo' => false, 'pedido' => null]);
+    }
+
+    session_write_close();
+
+    // Solo se envían al worker los datos que necesita cada operación.
+    $respuesta = llamarWorker([
         'secret' => PEDIDO_WORKER_SECRET,
-        'token' => $token,
         'accion' => $accion,
         'datos' => [
             'Cpedido' => $datos['Cpedido'] ?? null,
@@ -128,49 +144,44 @@ try {
         ]
     ]);
 
-    $cerrarSesionPedido =
-        (in_array($accion, ['confirmar', 'cancelar'], true) && !empty($respuesta['ok'])) ||
-        ($accion === 'iniciar' && empty($respuesta['ok']));
+    // La sesión solo conserva una marca para proteger las operaciones CRUD.
+    // El estado real de la transacción siempre vive en el worker y en Oracle.
+    session_start();
 
-    if (($respuesta['codigo'] ?? '') === 'SESSION_NOT_FOUND') {
-        $cerrarSesionPedido = true;
+    if (!empty($respuesta['ok']) && $accion === 'iniciar') {
+        $_SESSION['pedido_tx_token'] = true;
     }
 
-    if ($cerrarSesionPedido) {
-        session_start();
-        if (isset($_SESSION['pedido_tx_token']) &&
-            hash_equals((string)$_SESSION['pedido_tx_token'], (string)$token)) {
-            unset($_SESSION['pedido_tx_token']);
-        }
-        session_write_close();
+    if ((!empty($respuesta['ok']) && in_array($accion, ['confirmar', 'cancelar'], true)) ||
+        (($respuesta['codigo'] ?? '') === 'NO_ACTIVE_TRANSACTION') ||
+        ($accion === 'estado' && empty($respuesta['activo']))) {
+        unset($_SESSION['pedido_tx_token']);
     }
 
-    if (($respuesta['codigo'] ?? '') === 'SESSION_NOT_FOUND' && $accion === 'estado') {
-        responder(200, ['ok' => true, 'activo' => false]);
-    }
+    session_write_close();
 
     if (empty($respuesta['ok'])) {
-        responder(($respuesta['codigo'] ?? '') === 'SESSION_NOT_FOUND' ? 409 : 400, $respuesta);
+        $codigoHttp = in_array(
+            $respuesta['codigo'] ?? '',
+            ['WORKER_BUSY', 'NO_ACTIVE_TRANSACTION'],
+            true
+        ) ? 409 : 400;
+
+        responder($codigoHttp, $respuesta);
     }
 
     responder(200, $respuesta);
 
-} catch (Throwable $e) {
-    if (in_array($accion, ['iniciar', 'estado'], true)) {
-        session_start();
-        if (isset($_SESSION['pedido_tx_token']) &&
-            hash_equals((string)$_SESSION['pedido_tx_token'], (string)$token)) {
-            unset($_SESSION['pedido_tx_token']);
-        }
+} catch (InvalidArgumentException $e) {
+    if (session_status() === PHP_SESSION_ACTIVE) {
         session_write_close();
     }
+    responder(400, ['ok' => false, 'error' => $e->getMessage()]);
 
-    if ($accion === 'estado') {
-        // Si el worker no está disponible, su conexión Oracle ya no puede
-        // conservar la transacción: la página podrá cargar el estado confirmado.
-        responder(200, ['ok' => true, 'activo' => false]);
+} catch (Throwable $e) {
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_write_close();
     }
-
     error_log('DDSI api/pedidos.php: ' . $e->getMessage());
     responder(503, ['ok' => false, 'error' => $e->getMessage()]);
 }
