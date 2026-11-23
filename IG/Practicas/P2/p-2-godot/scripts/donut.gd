@@ -36,23 +36,31 @@ func _ready() -> void:
 	material_override = mat
 	
 	## añadir normales para verlas
-	mesh_normales = generarSegmentosNormales( vertices, normales, 0.15, Color(1.0,1.0,1.0) )
+	mesh_normales = Algoritmos.generarSegmentosNormales(vertices, normales, 0.15, Color(1.0,1.0,1.0))
 	mesh_normales.visible = ver_normales
 	add_child( mesh_normales )
 	
 	
 	
-func _unhandled_key_input( key_event: InputEvent ):
+func _unhandled_key_input(key_event: InputEvent) -> void:
 
 	if mesh_normales == null:
-		return 
-			
-	if key_event.keycode == KEY_N and not key_event.pressed :
+		return
+
+	var tecla := key_event as InputEventKey
+
+	if tecla == null:
+		return
+
+	if tecla.keycode == KEY_N and not tecla.pressed:
+
 		ver_normales = not ver_normales
+
 		if ver_normales:
 			print("Normales del Donut: activado")
 		else:
 			print("Normales del Donut: desactivado")
+
 		mesh_normales.visible = ver_normales
 		
 	
