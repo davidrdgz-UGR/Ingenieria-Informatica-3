@@ -30,23 +30,23 @@ class Conexion
     }
 }
 
-/* PRUEBAS Y CONEXIÓN */
+// /* PRUEBAS Y CONEXIÓN */
 
-$conexion = new Conexion();
-$db = $conexion->obtenerConexion();
+// $conexion = new Conexion();
+// $db = $conexion->obtenerConexion();
 
-echo "<h2>Conexión con Oracle correcta</h2>";
+// echo "<h2>Conexión con Oracle correcta</h2>";
 
-// 2. Mostrar el usuario conectado
-$sql = "SELECT * FROM PRUEBA_DDSI";
+// // 2. Mostrar el usuario conectado
+// $sql = "SELECT * FROM PRUEBA_DDSI";
 
-$stmt = $db->query($sql);
+// $stmt = $db->query($sql);
 
-$productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-print_r($productos);
+// print_r($productos);
 
-// Liberar referencias y cerrar la conexión
-$stmt = null;
-$db = null;
-$conexion->cerrarConexion();
+// // Liberar referencias y cerrar la conexión
+// $stmt = null;
+// $db = null;
+// $conexion->cerrarConexion();
