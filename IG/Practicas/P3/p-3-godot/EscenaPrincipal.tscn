@@ -1,19 +1,32 @@
 [gd_scene format=3 uid="uid://c085l4uwpwf0q"]
 
-[ext_resource type="PackedScene" uid="uid://doeyronq543if" path="res://modelos3D/Running Wolf by Google Data Arts Team - MyLvUaAaXO.glb" id="1_8ijfc"]
 [ext_resource type="Script" uid="uid://bwfe8kl6tp648" path="res://script/camara_3d_orbital_simple.gd" id="2_nwmal"]
 
-[node name="Node3D" type="Node3D" unique_id=2129751795]
+[sub_resource type="SphereMesh" id="SphereMesh_iffjt"]
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=570029157]
-transform = Transform3D(-0.997832, 0, -0.065813, 0, 1, 0, 0.065813, 0, -0.997832, -424.91336, 78.09285, 455.5794)
+[node name="Escena Principal P3" type="Node3D" unique_id=421617102]
 
-[node name="ObjetosP3" type="Node3D" parent="." unique_id=298169548]
-transform = Transform3D(0.99999994, 0, 0, 0, 1, 0, 0, 0, 0.99999994, -3.0517578e-05, 0, 3.0517578e-05)
+[node name="Ejes" type="Node3D" parent="." unique_id=13269159]
+visible = false
 
-[node name="Running Wolf by Google Data Arts Team - MyLvUaAaXO" parent="ObjetosP3" unique_id=14463204 instance=ExtResource("1_8ijfc")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23.0467, 8.917894, 10.914827)
-
-[node name="Camera3D" type="Camera3D" parent="." unique_id=1409414642]
-transform = Transform3D(1, 0, 0, 0, 0.9473435, 0.32021913, 0, -0.32021913, 0.9473435, 0, 94.45251, 179.12451)
+[node name="CamaraOrbital" type="Camera3D" parent="." unique_id=526362188]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55867654, 5.302162)
 script = ExtResource("2_nwmal")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1285099949]
+visible = false
+
+[node name="ObjetosP3" type="Node3D" parent="." unique_id=1496868402]
+
+[node name="Antena" type="MeshInstance3D" parent="ObjetosP3" unique_id=2115559328]
+visible = false
+
+[node name="Lobo" type="MeshInstance3D" parent="ObjetosP3" unique_id=1712687706]
+visible = false
+
+[node name="Objeto Prueba" type="MeshInstance3D" parent="ObjetosP3" unique_id=749920645]
+mesh = SubResource("SphereMesh_iffjt")
+
+[node name="Objeto Prueba2" type="MeshInstance3D" parent="ObjetosP3" unique_id=1403353583]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.2623128)
+mesh = SubResource("SphereMesh_iffjt")
