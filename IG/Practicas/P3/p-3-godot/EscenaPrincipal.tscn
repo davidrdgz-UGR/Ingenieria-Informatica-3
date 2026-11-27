@@ -1,20 +1,43 @@
 [gd_scene format=3 uid="uid://c085l4uwpwf0q"]
 
+[ext_resource type="Script" uid="uid://p2ex55xogcuv" path="res://script/ejes.gd" id="1_l726g"]
+[ext_resource type="PackedScene" uid="uid://cghxdpm6vneg0" path="res://modelos3D/Lobo/Running Wolf by Google Data Arts Team - MyLvUaAaXO.glb" id="2_l726g"]
 [ext_resource type="Script" uid="uid://bwfe8kl6tp648" path="res://script/camara_3d_orbital_simple.gd" id="2_nwmal"]
+[ext_resource type="Script" uid="uid://bkoixxiyap70t" path="res://lobo_giro.gd" id="3_ti6ls"]
+
+[sub_resource type="Environment" id="Environment_6pmnr"]
+background_mode = 1
+background_color = Color(0.76862746, 0.84705883, 1, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_8ijfc"]
 
 [sub_resource type="SphereMesh" id="SphereMesh_iffjt"]
+material = SubResource("StandardMaterial3D_8ijfc")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_l726g"]
+albedo_color = Color(0.7536694, 0.0011834389, 0.8607303, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_8ijfc"]
+material = SubResource("StandardMaterial3D_8ijfc")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_nwmal"]
+albedo_color = Color(0.6572922, 0.98366994, 0.8560685, 1)
 
 [node name="Escena Principal P3" type="Node3D" unique_id=421617102]
 
 [node name="Ejes" type="Node3D" parent="." unique_id=13269159]
 visible = false
+script = ExtResource("1_l726g")
 
 [node name="CamaraOrbital" type="Camera3D" parent="." unique_id=526362188]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55867654, 5.302162)
+transform = Transform3D(0.68578297, 0, 0.7278061, 0, 1, 0, -0.7278061, 0, 0.68578297, 4.6987658, 1.812216, 4.976033)
 script = ExtResource("2_nwmal")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1285099949]
-visible = false
+transform = Transform3D(1, 0, 0, 0, 0.94899, 0.31530622, 0, -0.31530622, 0.94899, 0, 1.9123254, 4.08014)
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=2089425966]
+environment = SubResource("Environment_6pmnr")
 
 [node name="ObjetosP3" type="Node3D" parent="." unique_id=1496868402]
 
@@ -22,11 +45,26 @@ visible = false
 visible = false
 
 [node name="Lobo" type="MeshInstance3D" parent="ObjetosP3" unique_id=1712687706]
-visible = false
+script = ExtResource("3_ti6ls")
+
+[node name="Running Wolf by Google Data Arts Team - MyLvUaAaXO" parent="ObjetosP3/Lobo" unique_id=1190668317 instance=ExtResource("2_l726g")]
+transform = Transform3D(0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01, 0, 0, -1.5881171)
+
+[node name="wolfDash_A" parent="ObjetosP3/Lobo/Running Wolf by Google Data Arts Team - MyLvUaAaXO" index="0" unique_id=1266371838]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 0, -59.726288)
+blend_shapes/wolfDash_A_001 = 1.0
+
+[node name="AnimationPlayer" parent="ObjetosP3/Lobo/Running Wolf by Google Data Arts Team - MyLvUaAaXO" index="1" unique_id=1023817204]
+autoplay = &"wolfDash_A"
 
 [node name="Objeto Prueba" type="MeshInstance3D" parent="ObjetosP3" unique_id=749920645]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6354568, 0)
 mesh = SubResource("SphereMesh_iffjt")
+surface_material_override/0 = SubResource("StandardMaterial3D_l726g")
 
 [node name="Objeto Prueba2" type="MeshInstance3D" parent="ObjetosP3" unique_id=1403353583]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.2623128)
-mesh = SubResource("SphereMesh_iffjt")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.52326214, 1.2623128)
+mesh = SubResource("SphereMesh_8ijfc")
+surface_material_override/0 = SubResource("StandardMaterial3D_nwmal")
+
+[editable path="ObjetosP3/Lobo/Running Wolf by Google Data Arts Team - MyLvUaAaXO"]
