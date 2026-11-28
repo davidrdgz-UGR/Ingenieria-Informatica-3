@@ -1,0 +1,11 @@
+Model Information:
+* title:	Liebherr tower crane
+* source:	https://sketchfab.com/3d-models/liebherr-tower-crane-0f8befc223734608a5d54aad4904951f
+* author:	Cem Alagozlu (https://sketchfab.com/cem.alagozlu)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Liebherr tower crane" (https://sketchfab.com/3d-models/liebherr-tower-crane-0f8befc223734608a5d54aad4904951f) by Cem Alagozlu (https://sketchfab.com/cem.alagozlu) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

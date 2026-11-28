@@ -1,7 +1,7 @@
 
 extends Node3D
 
-@export var radio: float = 5.0
+@export var radio: float = 15.0
 @export var velocidad: float = 1.0
 @export var altura: float = 0.0
 @export var orientacion_extra: float = 0.0
